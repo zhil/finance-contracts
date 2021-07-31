@@ -1,0 +1,11 @@
+.env
+node_modules
+
+# Hardhat files
+.openzeppelin
+cache
+artifacts
+solcInputs
+deployments/localhost
+coverage
+coverage.json

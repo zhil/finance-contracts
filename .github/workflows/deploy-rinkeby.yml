@@ -1,0 +1,28 @@
+name: Rinkeby Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+      - run: npm ci
+      - run: npx hardhat deploy --network rinkeby
+        env:
+          UNISWAP_ROUTER_ADDR: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
+          INFURA_PROJECT_ID: '9a22fd6b68e941aa91a9df7258be9853'
+          GAS_PRICE: '5500000000'
+          DEPLOYER_PRIVATE_KEY: '${{ secrets.RINKEBY_DEPLOYER_PRIVATE_KEY }}'
+          UNIQUEDEV_PRIVATE_KEY: '${{ secrets.RINKEBY_DEPLOYER_PRIVATE_KEY }}'
+          ETHERSCAN_API_KEY: '${{ secrets.RINKEBY_ETHERSCAN_API_KEY }}'
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: '[skip ci] Update rinkeby deployment snapshot'

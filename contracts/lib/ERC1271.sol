@@ -1,9 +1,6 @@
-pragma solidity 0.7.5;
+pragma solidity 0.8.3;
 
 abstract contract ERC1271 {
-    // bytes4(keccak256("isValidSignature(bytes,bytes)")
-    bytes4 constant internal MAGICVALUE = 0x20c13b0b;
-
     /**
      * @dev Should return whether the signature provided is valid for the provided data
      * @param _data Arbitrary length data signed on the behalf of address(this)

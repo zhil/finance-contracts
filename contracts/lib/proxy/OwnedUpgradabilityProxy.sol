@@ -1,4 +1,4 @@
-pragma solidity 0.7.5;
+pragma solidity 0.8.3;
 
 import "./Proxy.sol";
 import "./OwnedUpgradeabilityStorage.sol";

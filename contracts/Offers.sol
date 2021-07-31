@@ -1,19 +1,23 @@
 //SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.7.5;
+pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
 import "./lib/proxy/AuthenticatedProxy.sol";
+import "./lib/StaticCaller.sol";
+import "./lib/ERC712.sol";
 import "./lib/ERC1271.sol";
 
 contract Offers is
     ReentrancyGuardUpgradeable,
     AccessControlUpgradeable,
-    EIP712Upgradeable
+    StaticCaller,
+    EIP712
 {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes4 internal constant ERC1271_MAGICVALUE = 0x20c13b0b; // bytes4(keccak256("isValidSignature(bytes,bytes)")
 
     struct Offer {
         /* Address to receive the released investment funds. */
@@ -24,15 +28,14 @@ contract Offers is
             cliffPeriod: Cliff duration (in seconds) to not release any payment to offer maker.
             cliffPayment: Amount to release (in wei) to offer maker right after cliff period is finished.
 
-            vestingBancorSupply: Bancor-formula supply variable when calculating how much to release as vesting.
-            vestingBancorReserveBalance: Bancor-formula reserve-balance variable ^
-            vestingBancorReserveRatio: Bancor-formula reserve-ratio variable ^
+            vestingPeriod: How long to stretch the vesting.
+            vestingRatio: Bancor-formula reserve-ratio variable when calculating released amount.
 
             priceBancorSupply: Bancor-formula supply variable when calculating price for each funding.
-            priceBancorReserveBalance: Bancor-formula reserve-balance variable when calculating price for each funding.
-            priceBancorReserveRatio: Bancor-formula reserve-ratio variable when calculating price for each funding.
+            priceBancorReserveBalance: Bancor-formula reserve-balance variable ^.
+            priceBancorReserveRatio: Bancor-formula reserve-ratio variable ^.
         */
-        uint256[9] fundingOptions;
+        uint256[8] fundingOptions;
         /* Offer registry address. */
         address registry;
         /* Offer maker address. */
@@ -63,6 +66,15 @@ contract Offers is
         bytes data;
     }
 
+    /* CONSTANTS */
+
+    /* Order typehash for EIP 712 compatibility. */
+    bytes32 constant OFFER_TYPEHASH = keccak256(
+        "Offer(address beneficiary,uint256[8] fundingOptions,address registry,address maker,address staticTarget,bytes4 staticSelector,bytes staticExtradata,uint256 maximumFill,uint256 listingTime,uint256 expirationTime,uint256 salt)"
+    );
+
+    /* VARIABLES */
+
     /* Trusted proxy registry contracts. */
     mapping(address => bool) public registries;
 
@@ -74,19 +86,22 @@ contract Offers is
        By maker address, then by hash. */
     mapping(address => mapping(bytes32 => bool)) public approved;
 
-    /* Events */
+    /* EVENTS */
 
     event OfferApproved     (bytes32 indexed hash, address registry, address indexed maker, address staticTarget, bytes4 staticSelector, bytes staticExtradata, uint maximumFill, uint listingTime, uint expirationTime, uint salt);
     event OfferFillChanged  (bytes32 indexed hash, address indexed maker, uint newFill);
     event OfferFunded       (bytes32 hash, address indexed maker, address indexed operator, uint newFill);
 
-    /* Functions */
+    /* FUNCTIONS */
 
-    function initialize() public initializer {
+    function __Offer_init() public initializer {
+        __ReentrancyGuard_init_unchained();
+        __Offer_init_unchained();
+    }
+
+    function __Offer_init_unchained() public initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(GOVERNOR_ROLE, _msgSender());
-
-        __EIP712_init("FlairFunding", "0.1");
     }
 
     function _hashOffer(Offer memory offer)
@@ -184,7 +199,7 @@ contract Offers is
 
         /* (b): Contract-only authentication: EIP/ERC 1271. */
         if (isContract) {
-            if (ERC1271(maker).isValidSignature(abi.encodePacked(calculatedHashToSign), signature) == EIP_1271_MAGICVALUE) {
+            if (ERC1271(maker).isValidSignature(abi.encodePacked(calculatedHashToSign), signature) == ERC1271_MAGICVALUE) {
                 return true;
             }
             return false;
@@ -206,18 +221,18 @@ contract Offers is
         returns (bytes memory)
     {
         /* This array wrapping is necessary to preserve static call target function stack space. */
-        address[7] memory addresses = [offer.beneficiary, offer.registry, offer.maker, call.target, matcher];
-        uint[6] memory uints = [value, offer.maximumFill, offer.listingTime, offer.expirationTime, fill];
+        address[5] memory addresses = [offer.beneficiary, offer.registry, offer.maker, call.target, operator];
+        uint[5] memory uints = [value, offer.maximumFill, offer.listingTime, offer.expirationTime, fill];
 
-        return abi.encodeWithSelector(offer.staticSelector, offer.staticExtradata, addresses, call.howToCall, uints, call.data);
+        return abi.encodeWithSelector(offer.staticSelector, offer.staticExtradata, addresses, call.howToCall, uints, call.data, offer.fundingOptions);
     }
 
-    function _executeStaticCall(Offer memory offer, Call memory call, address matcher, uint value, uint fill)
+    function _executeStaticCall(Offer memory offer, Call memory call, address operator, uint value, uint fill)
         internal
         view
         returns (uint)
     {
-        return staticCallUint(offer.staticTarget, _encodeStaticCall(offer, call, matcher, value, fill));
+        return staticCallUint(offer.staticTarget, _encodeStaticCall(offer, call, operator, value, fill));
     }
 
     function _executeCall(ProxyRegistryInterface registry, address maker, Call memory call)
@@ -234,13 +249,13 @@ contract Offers is
         OwnableDelegateProxy delegateProxy = registry.proxies(maker);
 
         /* Assert existence. */
-        require(delegateProxy != OwnableDelegateProxy(0), "Delegate proxy does not exist for maker");
+        require(delegateProxy != OwnableDelegateProxy(payable(0)), "Delegate proxy does not exist for maker");
 
         /* Assert implementation. */
         require(delegateProxy.implementation() == registry.delegateProxyImplementation(), "Incorrect delegate proxy implementation for maker");
 
         /* Typecast. */
-        AuthenticatedProxy proxy = AuthenticatedProxy(address(delegateProxy));
+        AuthenticatedProxy proxy = AuthenticatedProxy(payable(delegateProxy));
 
         /* Execute offer. */
         return proxy.proxy(call.target, call.howToCall, call.data);
@@ -296,14 +311,14 @@ contract Offers is
     }
 
     function _executeOffer(
-        Offer offer,
-        Call call,
-        bytes signature
-    )  internal nonReentrant returns (uint256, uint256) {
+        Offer memory offer,
+        Call memory call,
+        bytes memory signature
+    )  internal nonReentrant returns (bytes32 hash, uint256 previousFill, uint256 newFill) {
         /* CHECKS */
 
         /* Calculate offer hash. */
-        bytes32 hash = _hashOffer(offer);
+        hash = _hashOffer(offer);
 
         /* Check offer validity. */
         require(_validateOfferParameters(offer, hash), "OFFERS/INVALID");
@@ -317,10 +332,10 @@ contract Offers is
         require(_executeCall(ProxyRegistryInterface(offer.registry), offer.maker, call), "OFFERS/FAILED");
 
         /* Fetch previous offer fill. */
-        uint previousFill = fills[offer.maker][hash];
+        previousFill = fills[offer.maker][hash];
 
         /* Execute offer static call, assert success, capture returned new fill. */
-        uint newFill = _executeStaticCall(offer, call, msg.sender, msg.value, previousFill);
+        newFill = _executeStaticCall(offer, call, msg.sender, msg.value, previousFill);
 
         /* EFFECTS */
 
@@ -334,6 +349,6 @@ contract Offers is
         /* Log match event. */
         emit OfferFunded(hash, offer.maker, msg.sender, newFill);
 
-        return (previousFill, newFill);
+        return (hash, previousFill, newFill);
     }
 }

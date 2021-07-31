@@ -45,11 +45,9 @@ Older Version License are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 OF ANY KIND, either express or implied. See the Older Version License for the specific
 language governing permissions and limitations under the Older Version License.
 */
-pragma solidity 0.7.5;
+pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
-import "./interfaces/IBancorFormula.sol";
 
 contract BancorFormula {
     using SafeMath for uint256;
@@ -352,7 +350,7 @@ contract BancorFormula {
     /**
      * @dev should be executed after construction (too large for the constructor)
      */
-    function init() public {
+    function __BancorFormula_init() public {
         initMaxExpArray();
         initLambertArray();
     }
@@ -376,7 +374,7 @@ contract BancorFormula {
         uint256 _reserveBalance,
         uint32 _reserveWeight,
         uint256 _amount
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0, "ERR_INVALID_SUPPLY");
         require(_reserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
@@ -415,7 +413,7 @@ contract BancorFormula {
         uint256 _reserveBalance,
         uint32 _reserveWeight,
         uint256 _amount
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0, "ERR_INVALID_SUPPLY");
         require(_reserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
@@ -461,7 +459,7 @@ contract BancorFormula {
         uint256 _targetReserveBalance,
         uint32 _targetReserveWeight,
         uint256 _amount
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_sourceReserveBalance > 0 && _targetReserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
         require(
@@ -504,7 +502,7 @@ contract BancorFormula {
         uint256 _reserveBalance,
         uint32 _reserveRatio,
         uint256 _amount
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0, "ERR_INVALID_SUPPLY");
         require(_reserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
@@ -543,7 +541,7 @@ contract BancorFormula {
         uint256 _reserveBalance,
         uint32 _reserveRatio,
         uint256 _amount
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0, "ERR_INVALID_SUPPLY");
         require(_reserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
@@ -582,7 +580,7 @@ contract BancorFormula {
         uint256 _reserveBalance,
         uint32 _reserveRatio,
         uint256 _amount
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0, "ERR_INVALID_SUPPLY");
         require(_reserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
@@ -652,7 +650,7 @@ contract BancorFormula {
         uint256 _secondaryReserveBalance,
         uint256 _reserveRateNumerator,
         uint256 _reserveRateDenominator
-    ) public view override returns (uint32, uint32) {
+    ) public view returns (uint32, uint32) {
         if (_primaryReserveStakedBalance == _primaryReserveBalance)
             require(_primaryReserveStakedBalance > 0 || _secondaryReserveBalance > 0, "ERR_INVALID_RESERVE_BALANCE");
         else

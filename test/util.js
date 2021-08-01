@@ -1,5 +1,5 @@
 const web3 = require('web3');
-const { structHash } = require('eip712.');
+const { structHash } = require('./eip712');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTES32 =
@@ -37,10 +37,31 @@ const eip712Offer = {
 };
 
 const hashOffer = (offer) => {
-  return (
-    '0x' +
-    structHash(eip712Offer.name, eip712Offer.fields, offer).toString('hex')
-  );
+  return `0x${structHash(eip712Offer.name, eip712Offer.fields, offer).toString(
+    'hex'
+  )}`;
+};
+
+const generateFundingOptions = ({
+  upfrontPayment = web3.utils.toBN(0).toString(),
+  cliffPeriod = web3.utils.toBN(0).toString(),
+  cliffPayment = web3.utils.toBN(0).toString(),
+  vestingPeriod = web3.utils.toBN(24 * 60 * 60).toString(),
+  vestingRatio = web3.utils.toBN(700000).toString(),
+  priceBancorSupply = web3.utils.toBN(web3.utils.toWei('100')).toString(), // ETH
+  priceBancorReserveBalance = web3.utils.toBN(web3.utils.toWei('1000')).toString(), // ETH
+  priceBancorReserveRatio = web3.utils.toBN(700000).toString(),
+}) => {
+  return [
+    upfrontPayment,
+    cliffPeriod,
+    cliffPayment,
+    vestingPeriod,
+    vestingRatio,
+    priceBancorSupply,
+    priceBancorReserveBalance,
+    priceBancorReserveRatio,
+  ];
 };
 
 module.exports = {
@@ -48,4 +69,5 @@ module.exports = {
   ZERO_BYTES32,
   increaseTime,
   hashOffer,
+  generateFundingOptions
 };

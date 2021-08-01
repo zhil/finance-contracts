@@ -10,7 +10,7 @@ function encodeType(name, fields) {
 }
 
 function typeHash(name, fields) {
-  return ethUtil.sha3(encodeType(name, fields));
+  return ethUtil.keccak(encodeType(name, fields));
 }
 
 function encodeData(name, fields, data) {
@@ -26,7 +26,7 @@ function encodeData(name, fields, data) {
     let value = data[field.name];
     if (field.type === 'string' || field.type === 'bytes') {
       encTypes.push('bytes32');
-      value = ethUtil.sha3(value);
+      value = ethUtil.keccak(value);
       encValues.push(value);
     } else {
       encTypes.push(field.type);
@@ -38,7 +38,7 @@ function encodeData(name, fields, data) {
 }
 
 function structHash(name, fields, data) {
-  return ethUtil.sha3(encodeData(name, fields, data));
+  return ethUtil.keccak(encodeData(name, fields, data));
 }
 
 const eip712Domain = {

@@ -3,13 +3,15 @@ const { v4: uuid } = require('uuid');
 const web3 = require('web3');
 
 const { setupTest } = require('../setup');
-const { ZERO_ADDRESS } = require('./util');
+const { ZERO_ADDRESS, hashOffer, generateFundingOptions } = require('../util');
 
 describe('Flair', () => {
   it('should successfully hash an offer', async () => {
     const { userA } = await setupTest();
 
     const example = {
+      beneficiary: userA.signer.address,
+      fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address,
       maker: userA.signer.address,
       staticTarget: ZERO_ADDRESS,
@@ -20,9 +22,9 @@ describe('Flair', () => {
       expirationTime: '0',
       salt: '0',
     };
-    let hash = await userA.flairContract.hashOffer(example);
-    assert.equal(hashOffer(example), hash, 'Incorrect order hash');
 
-    await expect(await userA.flairContract.name()).to.equal('Flair.Finance');
+    const hash = await userA.flairContract.hashOffer(...Object.values(example));
+
+    expect(hashOffer(example)).to.equal(hash);
   });
 });

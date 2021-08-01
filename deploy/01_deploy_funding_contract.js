@@ -6,14 +6,14 @@ module.exports = async ({getNamedAccounts, deployments}) => {
   const {deployer, governor} = await getNamedAccounts();
 
   const token = await deployments.get('Token');
-  const treasury = await deployments.get('Treasury');
 
   const contractArguments = [
-    // TODO
+    token.address,
+    700000, // rewardRatio (Bancor Reserve Weight): 0.7
   ];
 
-  await deployUpgradableContract(deployments, deployer, governor, 'FlairFinance', contractArguments);
+  await deployUpgradableContract(deployments, deployer, governor, 'Funding', contractArguments);
 };
 
-module.exports.tags = ['FlairFinance'];
-module.exports.dependencies = ['Token', 'Treasury', 'Vault'];
+module.exports.tags = ['Funding'];
+module.exports.dependencies = ['Token'];

@@ -5,7 +5,6 @@ pragma solidity 0.8.3;
  * @dev This contract keeps track of the upgradeability owner
  */
 contract OwnedUpgradeabilityStorage {
-
     // Current implementation
     address internal _implementation;
 

@@ -6,14 +6,13 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import "./lib/BancorFormula.sol";
-import "./Token.sol";
 
-contract Funding is
-    BancorFormula,
-    ReentrancyGuardUpgradeable
-{
+contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable, BancorFormula {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
+
+    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes32 public constant ORCHESTRATOR_ROLE = keccak256("ORCHESTRATOR_ROLE");
 
     struct Investment {
         uint256 amount;
@@ -23,6 +22,9 @@ contract Funding is
     uint256 constant INVERSE_BASIS_POINT = 10000;
 
     address private _token;
+    uint32 private _rewardRatio;
+    uint256 private _totalContribution;
+    uint256 private _totalRewarded;
 
     /* Funding filled amount, by beneficiary address then by hash. */
     mapping(address => mapping(bytes32 => uint256)) public filledAmountByBeneficiaryAndHash;
@@ -39,26 +41,106 @@ contract Funding is
     /* Released times, by beneficiary address. */
     mapping(address => uint256) public releasedTimes;
 
-    /* FUNCTIONS */
+    /* MODIFIERS */
 
-    function __Funding_init(address token) public initializer {
-        __ReentrancyGuard_init_unchained();
-        __Funding_init_unchained(token);
+    modifier isGovernor() {
+        require(hasRole(GOVERNOR_ROLE, _msgSender()), "TOKEN/NOT_GOVERNOR");
+        _;
     }
 
-    function __Funding_init_unchained(address token) public initializer {
+    /* FUNCTIONS */
+
+    function initialize(address token, uint32 rewardRatio) public initializer {
+        __ReentrancyGuard_init();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(GOVERNOR_ROLE, _msgSender());
+
         _token = token;
+        _rewardRatio = rewardRatio;
+    }
+
+    /* ADMIN */
+
+    function setToken(address newAddress) public isGovernor() {
+        _token = newAddress;
+    }
+
+    function setRewardRatio(uint32 newRatio) public isGovernor() {
+        _rewardRatio = newRatio;
     }
 
     /* INTERNAL */
 
-    function _registerInvestment(
+    function _calculateReleasedAmountUntil(
+        Investment memory investment,
+        uint256 checkpoint,
+        bytes32 hash
+    ) internal view returns (uint256) {
+        uint256[8] memory options = optionsByHash[hash];
+
+        require(investment.time < checkpoint, "FUNDING/TOO_EARLY");
+
+        uint256 upfrontPayment =
+            options[0] > 0 /* upfrontPaymentPercentage */
+                ? _calculatePercentage(options[0], investment.amount)
+                : 0;
+        uint256 total = upfrontPayment;
+
+        if (
+            checkpoint < investment.time + options[1] /* cliffPeriod */
+        ) {
+            return total;
+        }
+
+        uint256 cliffPayment =
+            options[2] > 0 /* cliffPayment */
+                ? _calculatePercentage(options[2], investment.amount)
+                : 0;
+        total += cliffPayment;
+
+        uint256 endOfVesting =
+            (investment.time +
+                options[1] + /* cliffPeriod */
+                options[3]); /* vestingPeriod */
+        uint256 vestedDuration = endOfVesting < checkpoint ? options[3] : endOfVesting - checkpoint;
+
+        uint256 vestingPeriod = options[3];
+        uint256 vestingTotalAmount = investment.amount - upfrontPayment - cliffPayment;
+
+        return
+            BancorFormula._saleTargetAmount(
+                vestingPeriod,
+                vestingTotalAmount,
+                uint32(options[4]), /* vestingRatio */
+                vestedDuration
+            );
+    }
+
+    function _calculatePercentage(uint256 percent, uint256 total) private pure returns (uint256) {
+        return (percent * total) / INVERSE_BASIS_POINT;
+    }
+
+    function _reward(address to, uint256 contributionAmount) internal virtual {
+        uint256 reward =
+            BancorFormula._purchaseTargetAmount(_totalRewarded, _totalContribution, _rewardRatio, contributionAmount);
+        _totalRewarded += reward;
+        _totalContribution += contributionAmount;
+
+        _token.call(abi.encodeWithSignature("_mint(address,uint256)", to, reward));
+    }
+
+    /* PUBLIC */
+
+    function registerInvestment(
         uint256 filled,
         bytes32 hash,
         uint256 requiredPayment,
         address beneficiary,
         uint256[8] memory fundingOptions
-    ) internal virtual {
+    ) public payable virtual {
+        require(hasRole(ORCHESTRATOR_ROLE, _msgSender()), "FUNDING/NOT_ORCHESTRATOR");
+
         if (filledAmountByBeneficiaryAndHash[beneficiary][hash] < 1) {
             hashesByBeneficiary[beneficiary].push(hash);
             optionsByHash[hash] = fundingOptions;
@@ -68,43 +150,8 @@ contract Funding is
         investmentsByHash[hash].push(Investment(msg.value, block.timestamp));
     }
 
-    function _calculateReleasedAmountUntil(Investment memory investment, uint256 checkpoint, bytes32 hash) internal view returns (uint256) {
-        uint256[8] memory options = optionsByHash[hash];
-
-        require(investment.time < checkpoint, "FUNDING/TOO_EARLY");
-
-        uint256 upfrontPayment = options[0]/* upfrontPaymentPercentage */ > 0 ? _calculatePercentage(options[0], investment.amount) : 0;
-        uint256 total = upfrontPayment;
-
-        if (checkpoint < investment.time + options[1]/* cliffPeriod */) {
-            return total;
-        }
-
-        uint256 cliffPayment = options[2]/* cliffPayment */ > 0 ? _calculatePercentage(options[2], investment.amount) : 0;
-        total += cliffPayment;
-
-        uint256 endOfVesting = (investment.time + options[1]/* cliffPeriod */ + options[3]/* vestingPeriod */);
-        uint256 vestedDuration = endOfVesting < checkpoint ? options[3] : endOfVesting - checkpoint;
-
-        uint256 vestingPeriod = options[3];
-        uint256 vestingTotalAmount = investment.amount - upfrontPayment - cliffPayment;
-
-        return saleTargetAmount(
-            vestingPeriod,
-            vestingTotalAmount,
-            uint32(options[4])/* vestingRatio */,
-            vestedDuration
-        );
-    }
-
-    function _calculatePercentage(uint256 percent, uint256 total) private pure returns (uint256) {
-        return (percent * total) / INVERSE_BASIS_POINT;
-    }
-
-    /* PUBLIC */
-
     function releaseAllToBeneficiary() public virtual nonReentrant {
-        address beneficiary = msg.sender;
+        address beneficiary = _msgSender();
         uint256 lastRelease = releasedTimes[beneficiary];
         uint256 now = block.timestamp;
 
@@ -124,6 +171,6 @@ contract Funding is
         releasedTimes[beneficiary] = now;
 
         payable(beneficiary).sendValue(toBeReleased);
-        Token(_token).reward(beneficiary, toBeReleased);
+        _reward(beneficiary, toBeReleased);
     }
 }

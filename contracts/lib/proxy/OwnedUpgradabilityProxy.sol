@@ -25,7 +25,7 @@ contract OwnedUpgradeabilityProxy is Proxy, OwnedUpgradeabilityStorage {
      * @dev Tells the address of the current implementation
      * @return address of the current implementation
      */
-    function implementation() override public view returns (address) {
+    function implementation() public view override returns (address) {
         return _implementation;
     }
 
@@ -33,7 +33,7 @@ contract OwnedUpgradeabilityProxy is Proxy, OwnedUpgradeabilityStorage {
      * @dev Tells the proxy type (EIP 897)
      * @return proxyTypeId Proxy type, 2 for forwarding proxy
      */
-    function proxyType() override public pure returns (uint256 proxyTypeId) {
+    function proxyType() public pure override returns (uint256 proxyTypeId) {
         return 2;
     }
 
@@ -88,9 +88,9 @@ contract OwnedUpgradeabilityProxy is Proxy, OwnedUpgradeabilityStorage {
      * @param data represents the msg.data to bet sent in the low level call. This parameter may include the function
      * signature of the implementation to be called with the needed payload
      */
-    function upgradeToAndCall(address implementation, bytes memory data) payable public onlyProxyOwner {
+    function upgradeToAndCall(address implementation, bytes memory data) public payable onlyProxyOwner {
         upgradeTo(implementation);
-        (bool success,) = address(this).delegatecall(data);
+        (bool success, ) = address(this).delegatecall(data);
         require(success, "Call failed after proxy upgrade");
     }
 }

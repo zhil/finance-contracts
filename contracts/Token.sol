@@ -7,38 +7,29 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20Burnable
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20SnapshotUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
-import "./lib/BancorFormula.sol";
-
 contract Token is
     Initializable,
     ContextUpgradeable,
-    AccessControlEnumerableUpgradeable,
+    AccessControlUpgradeable,
     ERC20BurnableUpgradeable,
     ERC20PausableUpgradeable,
     ERC20SnapshotUpgradeable,
-    ERC20PermitUpgradeable,
-    BancorFormula
+    ERC20PermitUpgradeable
 {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    uint32 internal _rewardRatio;
-    uint256 internal _totalContribution;
-    uint256 internal _totalRewarded;
-
-    function initialize(string memory name, string memory symbol, uint32 rewardRatio) public initializer {
+    function initialize(string memory name, string memory symbol) public initializer {
         __ERC20_init(name, symbol);
         __ERC20Permit_init(name);
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(GOVERNOR_ROLE, _msgSender());
-
-        _rewardRatio = rewardRatio;
     }
 
     /* MODIFIERS */
@@ -56,24 +47,10 @@ contract Token is
         _unpause();
     }
 
-    function setRewardRatio(uint32 newRatio) public virtual isGovernor() {
-        _rewardRatio = newRatio;
-    }
-
     /* FUNCTIONS */
     function mint(address to, uint256 amount) public virtual {
         require(hasRole(MINTER_ROLE, _msgSender()), "TOKEN/NOT_MINTER");
         _mint(to, amount);
-    }
-
-    function reward(address to, uint256 contributionAmount) public virtual {
-        require(hasRole(MINTER_ROLE, _msgSender()), "TOKEN/NOT_MINTER");
-
-        uint256 reward = purchaseTargetAmount(_totalRewarded, _totalContribution, _rewardRatio, contributionAmount);
-        _totalRewarded += reward;
-        _totalContribution += contributionAmount;
-
-        _mint(to, reward);
     }
 
     function _beforeTokenTransfer(

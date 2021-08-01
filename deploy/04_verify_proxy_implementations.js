@@ -12,12 +12,11 @@ module.exports = async ({deployments}) => {
   }
 
   const token = await deployments.get('Token');
-  const vault = await deployments.get('Vault');
   const treasury = await deployments.get('Treasury');
-  const marketer = await deployments.get('Marketer');
-  const directory = await deployments.get('Directory');
+  const staticValidators = await deployments.get('StaticValidators');
+  const flair = await deployments.get('Flair');
 
-  for (const contract of [directory, marketer, token, vault, treasury]) {
+  for (const contract of [flair, token, treasury, staticValidators]) {
     try {
       if (contract.implementation) {
         await hre.run('verify:verify', {

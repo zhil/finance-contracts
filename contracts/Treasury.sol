@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 import "./Token.sol";
-import "./PaymentRecipientUpgradable.sol";
+import "./lib/PaymentRecipientUpgradable.sol";
 
 contract Treasury is AccessControlUpgradeable, PaymentRecipientUpgradable {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");

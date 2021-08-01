@@ -5,7 +5,7 @@ module.exports = async ({getNamedAccounts, deployments}) => {
 
   await deployUpgradableContract(deployments, deployer, governor, 'Token', [
     'Flair Tokens',
-    'FLAIR',
+    'FLAIR'
   ]);
 };
 

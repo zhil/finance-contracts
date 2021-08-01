@@ -4,7 +4,7 @@ module.exports = async ({getNamedAccounts, deployments}) => {
   const {deployer} = await getNamedAccounts();
 
   const token = await deployments.get('Token');
-  const flairFinance = await deployments.get('FlairFinance');
+  const flair = await deployments.get('Flair');
 
   // TODO
 };

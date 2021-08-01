@@ -16,10 +16,10 @@ contract StaticCaller {
         return result;
     }
 
-    function staticCallUint(address target, bytes memory data)
+    function staticCallUint256(address target, bytes memory data)
     internal
     view
-    returns (uint ret)
+    returns (uint256 ret)
     {
         bool result;
         assembly {

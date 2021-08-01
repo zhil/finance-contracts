@@ -215,24 +215,24 @@ contract Offers is
         return false;
     }
 
-    function _encodeStaticCall(Offer memory offer, Call memory call, address operator, uint value, uint fill)
+    function _encodeStaticCall(Offer memory offer, Call memory call, address taker, uint value, uint fill)
         internal
         pure
         returns (bytes memory)
     {
         /* This array wrapping is necessary to preserve static call target function stack space. */
-        address[5] memory addresses = [offer.beneficiary, offer.registry, offer.maker, call.target, operator];
+        address[5] memory addresses = [offer.beneficiary, offer.registry, offer.maker, call.target, taker];
         uint[5] memory uints = [value, offer.maximumFill, offer.listingTime, offer.expirationTime, fill];
 
-        return abi.encodeWithSelector(offer.staticSelector, offer.staticExtradata, addresses, call.howToCall, uints, call.data, offer.fundingOptions);
+        return abi.encodeWithSelector(offer.staticSelector, offer.staticExtradata, addresses, call.howToCall, uints, call.data);
     }
 
-    function _executeStaticCall(Offer memory offer, Call memory call, address operator, uint value, uint fill)
+    function _executeStaticCall(Offer memory offer, Call memory call, address taker, uint value, uint fill)
         internal
         view
         returns (uint)
     {
-        return staticCallUint(offer.staticTarget, _encodeStaticCall(offer, call, operator, value, fill));
+        return staticCallUint256(offer.staticTarget, _encodeStaticCall(offer, call, taker, value, fill));
     }
 
     function _executeCall(ProxyRegistryInterface registry, address maker, Call memory call)

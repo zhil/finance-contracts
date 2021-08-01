@@ -6,7 +6,6 @@ module.exports = async ({getNamedAccounts, deployments}) => {
   const {deployer, governor} = await getNamedAccounts();
 
   const token = await deployments.get('Token');
-  const vault = await deployments.get('Vault');
   const treasury = await deployments.get('Treasury');
 
   const contractArguments = [

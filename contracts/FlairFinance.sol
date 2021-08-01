@@ -1,17 +1,30 @@
 //SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.3;
 
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+
 import "./Offers.sol";
 import "./Funding.sol";
 import "./lib/BancorFormula.sol";
 import "./lib/ERC712.sol";
 
 contract FlairFinance is BancorFormula, Funding, Offers {
+    using AddressUpgradeable for address;
+    using AddressUpgradeable for address payable;
+
     string public constant name = "Flair Finance";
 
     string public constant version = "0.1";
 
-    function initialize() public initializer {
+    address internal _treasury;
+
+    uint256 internal _protocolFee;
+
+    function initialize(
+        address token,
+        address treasury,
+        uint256 protocolFee
+    ) public initializer {
         DOMAIN_SEPARATOR = hash(EIP712Domain({
             name              : name,
             version           : version,
@@ -19,10 +32,28 @@ contract FlairFinance is BancorFormula, Funding, Offers {
             verifyingContract : address(this)
         }));
         __Offer_init();
-        __Funding_init();
+        __Funding_init(token);
         __BancorFormula_init();
+
+        _treasury = treasury;
+        _protocolFee = protocolFee;
     }
 
+    /* MODIFIERS */
+    modifier isGovernor() {
+        require(hasRole(GOVERNOR_ROLE, _msgSender()), "FINANCE/NOT_GOVERNOR");
+        _;
+    }
+
+    /* ADMIN */
+    function setProtocolFee(uint256 newValue) public isGovernor() {
+        _protocolFee = newValue;
+    }
+    function setTreasury(address newAddress) public isGovernor() {
+        _treasury = newAddress;
+    }
+
+    /* PUBLIC */
     function hashOffer(
         address beneficiary,
         uint256[8] calldata fundingOptions,
@@ -179,6 +210,7 @@ contract FlairFinance is BancorFormula, Funding, Offers {
         );
     }
 
+    /* INTERNAL */
     function _fundOffer(
         Offer memory offer,
         Call memory call,
@@ -189,6 +221,13 @@ contract FlairFinance is BancorFormula, Funding, Offers {
         uint256 filled = previousFill - newFill;
 
         require(filled > 0, "FINANCE/UNFILLED");
+
+        uint256 requiredPayment = fundCost(offer.fundingOptions[5], offer.fundingOptions[6], uint32(offer.fundingOptions[7]), filled);
+        uint256 protocolFeeAmount = (requiredPayment * _protocolFee) / INVERSE_BASIS_POINT;
+
+        require(msg.value == requiredPayment + protocolFeeAmount, "FUNDING/INVALID_PAYMENT");
+
+        payable(address(_treasury)).sendValue(protocolFeeAmount);
 
         _registerInvestment(
             filled,

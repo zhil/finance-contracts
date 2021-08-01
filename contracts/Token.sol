@@ -12,6 +12,8 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
+import "./lib/BancorFormula.sol";
+
 contract Token is
     Initializable,
     ContextUpgradeable,
@@ -19,30 +21,33 @@ contract Token is
     ERC20BurnableUpgradeable,
     ERC20PausableUpgradeable,
     ERC20SnapshotUpgradeable,
-    ERC20PermitUpgradeable
+    ERC20PermitUpgradeable,
+    BancorFormula
 {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    function initialize(string memory name, string memory symbol) public initializer {
+    uint32 internal _rewardRatio;
+    uint256 internal _totalContribution;
+    uint256 internal _totalRewarded;
+
+    function initialize(string memory name, string memory symbol, uint32 rewardRatio) public initializer {
         __ERC20_init(name, symbol);
         __ERC20Permit_init(name);
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(GOVERNOR_ROLE, _msgSender());
+
+        _rewardRatio = rewardRatio;
     }
 
-    //
-    // Modifiers
-    //
+    /* MODIFIERS */
     modifier isGovernor() {
         require(hasRole(GOVERNOR_ROLE, _msgSender()), "TOKEN/NOT_GOVERNOR");
         _;
     }
 
-    //
-    // Admin functions
-    //
+    /* ADMIN */
     function pause() public virtual isGovernor() {
         _pause();
     }
@@ -51,12 +56,24 @@ contract Token is
         _unpause();
     }
 
-    //
-    // Customized ERC-20 functions
-    //
+    function setRewardRatio(uint32 newRatio) public virtual isGovernor() {
+        _rewardRatio = newRatio;
+    }
+
+    /* FUNCTIONS */
     function mint(address to, uint256 amount) public virtual {
         require(hasRole(MINTER_ROLE, _msgSender()), "TOKEN/NOT_MINTER");
         _mint(to, amount);
+    }
+
+    function reward(address to, uint256 contributionAmount) public virtual {
+        require(hasRole(MINTER_ROLE, _msgSender()), "TOKEN/NOT_MINTER");
+
+        uint256 reward = purchaseTargetAmount(_totalRewarded, _totalContribution, _rewardRatio, contributionAmount);
+        _totalRewarded += reward;
+        _totalContribution += contributionAmount;
+
+        _mint(to, reward);
     }
 
     function _beforeTokenTransfer(

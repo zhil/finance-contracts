@@ -6,8 +6,11 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import "./lib/BancorFormula.sol";
+import "./lib/PaymentRecipientUpgradable.sol";
 
-contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable, BancorFormula {
+import "hardhat/console.sol";
+
+contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable, BancorFormula, PaymentRecipientUpgradable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
 

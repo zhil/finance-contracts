@@ -8,6 +8,8 @@ import "./lib/BancorFormula.sol";
 import "./lib/ERC712.sol";
 import "./core/Offers.sol";
 
+import "hardhat/console.sol";
+
 contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
@@ -31,7 +33,13 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
 
     /* EVENTS */
 
-    event OfferFunded(bytes32 hash, address indexed maker, address indexed operator, uint256 filledAmount, uint256 newFill);
+    event OfferFunded(
+        bytes32 hash,
+        address indexed maker,
+        address indexed operator,
+        uint256 filledAmount,
+        uint256 newFill
+    );
 
     function initialize(
         address[] memory registryAddrs,
@@ -45,7 +53,7 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         _funding = funding;
         _protocolFee = protocolFee;
 
-        for (uint ind = 0; ind < registryAddrs.length; ind++) {
+        for (uint256 ind = 0; ind < registryAddrs.length; ind++) {
             registries[registryAddrs[ind]] = true;
         }
     }
@@ -267,16 +275,19 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
             payable(address(_treasury)).sendValue(protocolFeeAmount);
         }
 
-        _funding.call{value: fundingCost}(
-            abi.encodeWithSignature(
-                "registerInvestment(uint256,bytes32,uint256,address,uint256[8])",
-                filled,
-                hash,
-                fundingCost,
-                offer.beneficiary,
-                offer.fundingOptions
-            )
-        );
+        (bool success, ) =
+            _funding.call{value: fundingCost}(
+                abi.encodeWithSignature(
+                    "registerInvestment(uint256,bytes32,uint256,address,uint256[8])",
+                    filled,
+                    hash,
+                    fundingCost,
+                    offer.beneficiary,
+                    offer.fundingOptions
+                )
+            );
+
+        require(success, "FLAIR_FINANCE/INVESTMENT_FAILED");
 
         emit OfferFunded(hash, offer.maker, msg.sender, filled, newFill);
     }

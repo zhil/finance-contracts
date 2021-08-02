@@ -205,4 +205,79 @@ describe('Flair', () => {
       .to.emit(userA.flairContract, 'OfferFunded')
       .withArgs(hash, userA.signer.address, userB.signer.address, 1, 1);
   });
+
+  it('should successfully move the funds to funding contract when offer is funded', async () => {
+    const { userA, userB } = await setupTest();
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userA.signer.address.toLowerCase(), 666]
+    );
+
+    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+    );
+    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      staticTarget: userA.staticValidators.address.toLowerCase(),
+      staticSelector,
+      staticExtradata,
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+      salt: '100230',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await expect(
+      await userB.flairContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
+          target: userA.testERC721.address.toLowerCase(),
+          data: targetSelector + targetExtradata.substr(2),
+        }),
+        {
+          value: web3.utils.toWei('1.05'),
+        }
+      )
+    ).to.changeEtherBalances(
+      [
+        userA.flairContract,
+        userA.treasuryContract,
+        userA.fundingContract,
+        userA.signer,
+        userB.signer,
+      ],
+      [
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0.05'),
+        web3.utils.toWei('1'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('-1.05'),
+      ]
+    );
+  });
 });

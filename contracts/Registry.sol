@@ -4,12 +4,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./lib/proxy/OwnableDelegateProxy.sol";
 import "./lib/proxy/ProxyRegistryInterface.sol";
+import "./lib/proxy/AuthenticatedProxy.sol";
 
 /**
- * @title ProxyRegistry
+ * @title Registry
  * @author Wyvern Protocol Developers
  */
-contract ProxyRegistry is Ownable, ProxyRegistryInterface {
+contract Registry is Ownable, ProxyRegistryInterface {
+    string public constant name = "Flair Proxy Registry";
+
+    /* Whether the initial auth address has been set. */
+    bool public initialAddressSet = false;
+
     /* DelegateProxy implementation contract. Must be initialized. */
     address public override delegateProxyImplementation;
 
@@ -29,10 +35,29 @@ contract ProxyRegistry is Ownable, ProxyRegistryInterface {
     */
     uint256 public DELAY_PERIOD = 2 weeks;
 
+    constructor() public {
+        AuthenticatedProxy impl = new AuthenticatedProxy();
+        impl.initialize(address(this), this);
+        impl.setRevoke(true);
+        delegateProxyImplementation = address(impl);
+    }
+
+    /**
+     * Grant authentication to the initial Flair contract
+     *
+     * @dev No delay, can only be called once - after that the standard registry process with a delay must be used
+     * @param authAddress Address of the contract to grant authentication
+     */
+    function grantInitialAuthentication(address authAddress) public onlyOwner {
+        require(!initialAddressSet, "Flair Proxy Registry initial address already set");
+        initialAddressSet = true;
+        contracts[authAddress] = true;
+    }
+
     /**
      * Start the process to enable access for specified contract. Subject to delay period.
      *
-     * @dev ProxyRegistry owner only
+     * @dev Registry owner only
      * @param addr Address to which to grant permissions
      */
     function startGrantAuthentication(address addr) public onlyOwner {
@@ -43,7 +68,7 @@ contract ProxyRegistry is Ownable, ProxyRegistryInterface {
     /**
      * End the process to enable access for specified contract after delay period has passed.
      *
-     * @dev ProxyRegistry owner only
+     * @dev Registry owner only
      * @param addr Address to which to grant permissions
      */
     function endGrantAuthentication(address addr) public onlyOwner {
@@ -58,7 +83,7 @@ contract ProxyRegistry is Ownable, ProxyRegistryInterface {
     /**
      * Revoke access for specified contract. Can be done instantly.
      *
-     * @dev ProxyRegistry owner only
+     * @dev Registry owner only
      * @param addr Address of which to revoke permissions
      */
     function revokeAuthentication(address addr) public onlyOwner {

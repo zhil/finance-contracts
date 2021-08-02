@@ -1,6 +1,6 @@
 pragma solidity 0.8.3;
 
-import "../../ProxyRegistry.sol";
+import "../../Registry.sol";
 import "./TokenRecipient.sol";
 import "./OwnedUpgradeabilityStorage.sol";
 
@@ -16,7 +16,7 @@ contract AuthenticatedProxy is TokenRecipient, OwnedUpgradeabilityStorage {
     address public user;
 
     /* Associated registry with contract authentication information. */
-    ProxyRegistry public registry;
+    Registry public registry;
 
     /* Whether access has been revoked. */
     bool public revoked;
@@ -31,9 +31,9 @@ contract AuthenticatedProxy is TokenRecipient, OwnedUpgradeabilityStorage {
      * Initialize an AuthenticatedProxy
      *
      * @param addrUser Address of user on whose behalf this proxy will act
-     * @param addrRegistry Address of ProxyRegistry contract which will manage this proxy
+     * @param addrRegistry Address of Registry contract which will manage this proxy
      */
-    function initialize(address addrUser, ProxyRegistry addrRegistry) public {
+    function initialize(address addrUser, Registry addrRegistry) public {
         require(!initialized, "Authenticated proxy already initialized");
         initialized = true;
         user = addrUser;
@@ -41,7 +41,7 @@ contract AuthenticatedProxy is TokenRecipient, OwnedUpgradeabilityStorage {
     }
 
     /**
-     * Set the revoked flag (allows a user to revoke ProxyRegistry access)
+     * Set the revoked flag (allows a user to revoke Registry access)
      *
      * @dev Can be called by the user only
      * @param revoke Whether or not to revoke access

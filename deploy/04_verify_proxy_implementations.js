@@ -1,6 +1,6 @@
 const hre = require('hardhat');
 
-module.exports = async ({deployments}) => {
+module.exports = async ({ deployments }) => {
   if (
     !hre.hardhatArguments ||
     !hre.hardhatArguments.network ||

@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/utils/Arrays.sol";
 import "./lib/ArrayUtils.sol";
 import "./lib/proxy/AuthenticatedProxy.sol";
 
+import "hardhat/console.sol";
+
 contract StaticValidators {
     string public constant name = "Flair.Finance Static Validators";
 
@@ -30,13 +32,12 @@ contract StaticValidators {
 
         require(requiredTarget == addresses[3], "STATIC_VALIDATOR/INVALID_TARGET");
 
-        bytes32 requestedSelector = abi.decode(ArrayUtils.arraySlice(data, 0, 32), (bytes32));
+        bytes32 requestedSelector = abi.decode(ArrayUtils.slice(data, 0, 32), (bytes32));
 
         require(requestedSelector == requiredSelector, "STATIC_VALIDATOR/INVALID_SELECTOR");
 
-        uint256 requestedAmount = abi.decode(ArrayUtils.arraySlice(data, amountOffset, 32), (uint256));
-        uint256 newFill =
-            uints[4] + requestedAmount; /* currentFill */
+        uint256 requestedAmount = abi.decode(ArrayUtils.slice(data, amountOffset, 32), (uint256));
+        uint256 newFill = uints[4] + requestedAmount; /* currentFill */
 
         require(
             newFill <= uints[1], /* maximumFill */
@@ -53,18 +54,20 @@ contract StaticValidators {
         uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
-        (address requiredTarget, bytes32 requiredSelector, uint32 amountOffset) =
-            abi.decode(extraData, (address, bytes32, uint32));
+        (address requiredTarget, bytes4 requiredSelector, uint32 amountOffset) =
+            abi.decode(extraData, (address, bytes4, uint32));
 
         require(requiredTarget == addresses[3], "STATIC_VALIDATOR/INVALID_TARGET");
 
-        bytes32 requestedSelector = abi.decode(ArrayUtils.arraySlice(data, 0, 32), (bytes32));
+        bytes memory requestedSelector = ArrayUtils.slice(data, 0, 4);
 
-        require(requestedSelector == requiredSelector, "STATIC_VALIDATOR/INVALID_SELECTOR");
+        require(
+            ArrayUtils.arrayEq(requestedSelector, abi.encodePacked(requiredSelector)),
+            "STATIC_VALIDATOR/INVALID_SELECTOR"
+        );
 
-        uint32 requestedAmount = abi.decode(ArrayUtils.arraySlice(data, amountOffset, 4), (uint32));
-        uint256 newFill =
-            uints[4] + requestedAmount; /* currentFill */
+        uint32 requestedAmount = abi.decode(ArrayUtils.slice(data, amountOffset, 4), (uint32));
+        uint256 newFill = uints[4] + requestedAmount; /* currentFill */
 
         require(
             newFill <= uints[1], /* maximumFill */
@@ -84,17 +87,19 @@ contract StaticValidators {
         uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
-        (address requiredTarget, bytes32 requiredSelector, uint32 offeredAmount) =
-            abi.decode(extraData, (address, bytes32, uint32));
+        (address requiredTarget, bytes4 requiredSelector, uint32 offeredAmount) =
+            abi.decode(extraData, (address, bytes4, uint32));
 
         require(requiredTarget == addresses[3], "STATIC_VALIDATOR/INVALID_TARGET");
 
-        bytes32 requestedSelector = abi.decode(ArrayUtils.arraySlice(data, 0, 32), (bytes32));
+        bytes memory requestedSelector = ArrayUtils.slice(data, 0, 4);
 
-        require(requestedSelector == requiredSelector, "STATIC_VALIDATOR/INVALID_SELECTOR");
+        require(
+            ArrayUtils.arrayEq(requestedSelector, abi.encodePacked(requiredSelector)),
+            "STATIC_VALIDATOR/INVALID_SELECTOR"
+        );
 
-        uint256 newFill =
-            uints[4] + offeredAmount; /* currentFill */
+        uint256 newFill = uints[4] + offeredAmount; /* currentFill */
 
         require(
             newFill <= uints[1], /* maximumFill */
@@ -155,8 +160,7 @@ contract StaticValidators {
             uints[2] > uints[4], /* maximumFill */ /* currentFill */
             "STATIC_VALIDATOR/ALREADY_FILLED"
         );
-        uint256 remainingFill =
-            uints[2] - uints[4]; /* maximumFill */ /* currentFill */
+        uint256 remainingFill = uints[2] - uints[4]; /* maximumFill */ /* currentFill */
 
         // Call target == ERC-1155 token to give
         require(
@@ -183,8 +187,7 @@ contract StaticValidators {
             )
         );
 
-        uint256 newFill =
-            uints[4] + requestedAmount; /* currentFill */
+        uint256 newFill = uints[4] + requestedAmount; /* currentFill */
 
         require(
             newFill <= uints[1], /* maximumFill */
@@ -195,7 +198,7 @@ contract StaticValidators {
     }
 
     function getERC1155AmountFromCalldata(bytes memory data) internal pure returns (uint256) {
-        uint256 amount = abi.decode(ArrayUtils.arraySlice(data, 100, 32), (uint256));
+        uint256 amount = abi.decode(ArrayUtils.slice(data, 100, 32), (uint256));
         return amount;
     }
 }

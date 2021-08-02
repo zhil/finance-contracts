@@ -7,8 +7,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   const treasury = await deployments.get('Treasury');
   const funding = await deployments.get('Funding');
+  const registry = await deployments.get('Registry');
 
   const contractArguments = [
+    [registry.address],
     treasury.address,
     funding.address,
     500, // protocolFee: 5%

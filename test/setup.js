@@ -1,4 +1,5 @@
 const web3 = require('web3');
+const { deployPermanentContract } = require('../hardhat.util');
 
 const setupTest = deployments.createFixture(
   async (
@@ -9,6 +10,14 @@ const setupTest = deployments.createFixture(
     const accounts = await getUnnamedAccounts();
 
     await deployments.fixture();
+
+    await deployPermanentContract(
+      deployments,
+      governor,
+      governor,
+      'TestERC721',
+      []
+    );
 
     return {
       governor: {
@@ -22,6 +31,7 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           governor
         ),
+        testERC721: await ethers.getContract('TestERC721', governor),
       },
       userA: {
         signer: await ethers.getSigner(accounts[0]),
@@ -37,6 +47,7 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[0]
         ),
+        testERC721: await ethers.getContract('TestERC721', accounts[0]),
       },
       userB: {
         signer: await ethers.getSigner(accounts[1]),
@@ -52,6 +63,7 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[1]
         ),
+        testERC721: await ethers.getContract('TestERC721', accounts[1]),
       },
       userC: {
         signer: await ethers.getSigner(accounts[2]),
@@ -67,6 +79,7 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[2]
         ),
+        testERC721: await ethers.getContract('TestERC721', accounts[2]),
       },
       userD: {
         signer: await ethers.getSigner(accounts[3]),
@@ -82,6 +95,7 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[3]
         ),
+        testERC721: await ethers.getContract('TestERC721', accounts[3]),
       },
       userE: {
         signer: await ethers.getSigner(accounts[4]),
@@ -97,6 +111,7 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[4]
         ),
+        testERC721: await ethers.getContract('TestERC721', accounts[4]),
       },
     };
   }

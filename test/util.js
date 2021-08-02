@@ -101,11 +101,11 @@ const generateFundingOptions = ({
   cliffPayment = web3.utils.toBN(0).toString(),
   vestingPeriod = web3.utils.toBN(24 * 60 * 60).toString(),
   vestingRatio = web3.utils.toBN(700000).toString(),
-  priceBancorSupply = web3.utils.toBN(web3.utils.toWei('100')).toString(), // ETH
+  priceBancorSupply = web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
   priceBancorReserveBalance = web3.utils
-    .toBN(web3.utils.toWei('1000'))
-    .toString(), // ETH
-  priceBancorReserveRatio = web3.utils.toBN(700000).toString(),
+    .toBN(web3.utils.toWei('10'))
+    .toString(), // Initial Reserve (e.g. ETH)
+  priceBancorReserveRatio = web3.utils.toBN(1000000).toString(),
 }) => {
   return [
     upfrontPayment,
@@ -119,6 +119,25 @@ const generateFundingOptions = ({
   ];
 };
 
+function prepareOfferArgs(offer, signature, call = {}) {
+  return [
+    offer.fundingOptions,
+    [
+      offer.beneficiary,
+      offer.registry,
+      offer.maker,
+      offer.staticTarget,
+      call.target || offer.staticTarget,
+    ],
+    [offer.maximumFill, offer.listingTime, offer.expirationTime, offer.salt],
+    offer.staticSelector,
+    offer.staticExtradata,
+    signature,
+    call.howToCall || 1,
+    call.data || '0x',
+  ];
+}
+
 module.exports = {
   ZERO_ADDRESS,
   ZERO_BYTES32,
@@ -127,4 +146,5 @@ module.exports = {
   hashToSign,
   signOffer,
   generateFundingOptions,
+  prepareOfferArgs,
 };

@@ -61,13 +61,16 @@ library ArrayUtils {
      * @param _bytes array
      * @param _start start index
      * @param _length length to take
-     * @return Whether or not all bytes in the arrays are equal
+     * @return Sliced array
      */
-    function arraySlice(
+    function slice(
         bytes memory _bytes,
         uint256 _start,
         uint256 _length
     ) internal pure returns (bytes memory) {
+        require(_length + 31 >= _length, "slice_overflow");
+        require(_bytes.length >= _start + _length, "slice_outOfBounds");
+
         bytes memory tempBytes;
 
         assembly {
@@ -114,6 +117,9 @@ library ArrayUtils {
                 //if we want a zero-length slice let's just return a zero-length array
                 default {
                     tempBytes := mload(0x40)
+                    //zero out the 32 bytes slice we are about to return
+                    //we need to do it because Solidity does not garbage collect
+                    mstore(tempBytes, 0)
 
                     mstore(0x40, add(tempBytes, 0x20))
                 }

@@ -74,7 +74,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
     /* Trusted proxy registry contracts. */
     mapping(address => bool) public registries;
 
-    /* Offer fill status, by maker address then by hash. */
+    /* Offer fill amounts, by maker address then by hash. */
     mapping(address => mapping(bytes32 => uint256)) public fills;
 
     /* Offers verified by on-chain approval.
@@ -97,7 +97,6 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         uint256 salt
     );
     event OfferFillChanged(bytes32 indexed hash, address indexed maker, uint256 newFill);
-    event OfferFunded(bytes32 hash, address indexed maker, address indexed operator, uint256 newFill);
 
     /* FUNCTIONS */
 
@@ -364,11 +363,6 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         if (newFill != previousFill) {
             fills[offer.maker][hash] = newFill;
         }
-
-        /* LOGS */
-
-        /* Log match event. */
-        emit OfferFunded(hash, offer.maker, msg.sender, newFill);
 
         return (hash, previousFill, newFill);
     }

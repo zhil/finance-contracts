@@ -26,7 +26,15 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
 
     uint256 internal _protocolFee;
 
+    /* Offer total paid funding costs, by maker address then by hash. */
+    mapping(address => mapping(bytes32 => uint256)) public offerFundings;
+
+    /* EVENTS */
+
+    event OfferFunded(bytes32 hash, address indexed maker, address indexed operator, uint256 filledAmount, uint256 newFill);
+
     function initialize(
+        address[] memory registryAddrs,
         address treasury,
         address funding,
         uint256 protocolFee
@@ -36,6 +44,10 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         _treasury = treasury;
         _funding = funding;
         _protocolFee = protocolFee;
+
+        for (uint ind = 0; ind < registryAddrs.length; ind++) {
+            registries[registryAddrs[ind]] = true;
+        }
     }
 
     /* MODIFIERS */
@@ -206,6 +218,22 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         );
     }
 
+    function getOfferFundingCost(
+        address maker,
+        bytes32 hash,
+        uint256[8] calldata fundingOptions,
+        uint256 fillAmount
+    ) public view returns (uint256 fundingCost, uint256 protocolFeeAmount) {
+        fundingCost = BancorFormula._fundCost(
+            fundingOptions[5] + fills[maker][hash],
+            fundingOptions[6] + offerFundings[maker][hash],
+            uint32(fundingOptions[7]),
+            fillAmount
+        );
+
+        protocolFeeAmount = (fundingCost * _protocolFee) / INVERSE_BASIS_POINT;
+    }
+
     /* INTERNAL */
 
     function _fundOffer(
@@ -215,35 +243,41 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     ) internal {
         (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeOffer(offer, call, signature);
 
-        uint256 filled = previousFill - newFill;
+        uint256 filled = newFill - previousFill;
 
         require(filled > 0, "FLAIR_FINANCE/UNFILLED");
 
-        uint256 requiredPayment =
+        uint256 fundingCost =
             BancorFormula._fundCost(
-                offer.fundingOptions[5],
-                offer.fundingOptions[6],
+                offer.fundingOptions[5] + previousFill,
+                offer.fundingOptions[6] + offerFundings[offer.maker][hash],
                 uint32(offer.fundingOptions[7]),
                 filled
             );
 
-        {
-            uint256 protocolFeeAmount = (requiredPayment * _protocolFee) / INVERSE_BASIS_POINT;
+        console.log("Funding Cost is %s", fundingCost);
 
-            require(msg.value == requiredPayment + protocolFeeAmount, "FLAIR_FINANCE/INVALID_PAYMENT");
+        offerFundings[offer.maker][hash] += fundingCost;
+
+        {
+            uint256 protocolFeeAmount = (fundingCost * _protocolFee) / INVERSE_BASIS_POINT;
+
+            require(msg.value == fundingCost + protocolFeeAmount, "FLAIR_FINANCE/INVALID_PAYMENT");
 
             payable(address(_treasury)).sendValue(protocolFeeAmount);
         }
 
-        _funding.call{value: requiredPayment}(
+        _funding.call{value: fundingCost}(
             abi.encodeWithSignature(
                 "registerInvestment(uint256,bytes32,uint256,address,uint256[8])",
                 filled,
                 hash,
-                requiredPayment,
+                fundingCost,
                 offer.beneficiary,
                 offer.fundingOptions
             )
         );
+
+        emit OfferFunded(hash, offer.maker, msg.sender, filled, newFill);
     }
 }

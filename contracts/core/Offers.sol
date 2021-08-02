@@ -7,10 +7,11 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgra
 
 import "../lib/proxy/AuthenticatedProxy.sol";
 import "../lib/StaticCaller.sol";
-import "../lib/ERC712.sol";
 import "../lib/ERC1271.sol";
 
-contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller, EIP712 {
+import "hardhat/console.sol";
+
+contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller, EIP712Upgradeable {
     bytes4 internal constant ERC1271_MAGICVALUE = 0x20c13b0b; // bytes4(keccak256("isValidSignature(bytes,bytes)")
 
     struct Offer {
@@ -100,7 +101,8 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
     /* FUNCTIONS */
 
-    function __Offer_init() public initializer {
+    function __Offer_init(string memory name, string memory version) public initializer {
+        __EIP712_init_unchained(name, version);
         __ReentrancyGuard_init_unchained();
         __Offer_init_unchained();
     }
@@ -109,28 +111,25 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
     function _hashOffer(Offer memory offer) internal pure returns (bytes32 hash) {
         /* Per EIP 712. */
-        return
-            keccak256(
-                abi.encode(
-                    OFFER_TYPEHASH,
-                    offer.beneficiary,
-                    offer.fundingOptions,
-                    offer.registry,
-                    offer.maker,
-                    offer.staticTarget,
-                    offer.staticSelector,
-                    keccak256(offer.staticExtradata),
-                    offer.maximumFill,
-                    offer.listingTime,
-                    offer.expirationTime,
-                    offer.salt
-                )
-            );
+        return keccak256(abi.encode(
+            OFFER_TYPEHASH,
+            offer.beneficiary,
+            keccak256(abi.encode(offer.fundingOptions)),
+            offer.registry,
+            offer.maker,
+            offer.staticTarget,
+            offer.staticSelector,
+            keccak256(offer.staticExtradata),
+            offer.maximumFill,
+            offer.listingTime,
+            offer.expirationTime,
+            offer.salt
+         ));
     }
 
     function _hashToSign(bytes32 offerHash) internal view returns (bytes32 hash) {
         /* Calculate the string a user must sign. */
-        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, offerHash));
+        return _hashTypedDataV4(offerHash);
     }
 
     function _exists(address what) internal view returns (bool) {
@@ -199,7 +198,9 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         /* (c): Account-only authentication: ECDSA-signed by maker. */
         (uint8 v, bytes32 r, bytes32 s) = abi.decode(signature, (uint8, bytes32, bytes32));
 
-        if (ecrecover(calculatedHashToSign, v, r, s) == maker) {
+        address recoveredAddr = ecrecover(calculatedHashToSign, v, r, s);
+
+        if (recoveredAddr == maker) {
             return true;
         }
 

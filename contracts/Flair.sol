@@ -31,10 +31,7 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         address funding,
         uint256 protocolFee
     ) public initializer {
-        DOMAIN_SEPARATOR = hash(
-            EIP712Domain({name: name, version: version, chainId: block.chainid, verifyingContract: address(this)})
-        );
-        __Offer_init();
+        __Offer_init(name, version);
 
         _treasury = treasury;
         _funding = funding;

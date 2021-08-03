@@ -8,8 +8,6 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "./lib/BancorFormula.sol";
 import "./lib/PaymentRecipientUpgradable.sol";
 
-import "hardhat/console.sol";
-
 contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable, BancorFormula, PaymentRecipientUpgradable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
@@ -61,6 +59,10 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
 
         _token = token;
         _rewardRatio = rewardRatio;
+
+        // Bancor formula requires initial variables to correctly calculate rewards
+        _totalContribution = 1 ether;
+        _totalRewarded = 1000 ether;
     }
 
     /* ADMIN */
@@ -82,7 +84,9 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
     ) internal view returns (uint256) {
         uint256[8] memory options = optionsByHash[hash];
 
-        require(investment.time < checkpoint, "FUNDING/TOO_EARLY");
+        if (checkpoint < investment.time) {
+            return 0;
+        }
 
         uint256 upfrontPayment =
             options[0] > 0 /* upfrontPaymentPercentage */
@@ -130,7 +134,9 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
         _totalRewarded += reward;
         _totalContribution += contributionAmount;
 
-        _token.call(abi.encodeWithSignature("_mint(address,uint256)", to, reward));
+        (bool success, ) = _token.call(abi.encodeWithSignature("mint(address,uint256)", to, reward));
+
+        require(success, "FUNDING/REWARD_FAILED");
     }
 
     /* PUBLIC */

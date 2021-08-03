@@ -6,8 +6,6 @@ import "@openzeppelin/contracts/utils/Arrays.sol";
 import "./lib/ArrayUtils.sol";
 import "./lib/proxy/AuthenticatedProxy.sol";
 
-import "hardhat/console.sol";
-
 contract StaticValidators {
     string public constant name = "Flair.Finance Static Validators";
 
@@ -27,14 +25,18 @@ contract StaticValidators {
         uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
-        (address requiredTarget, bytes32 requiredSelector, uint32 amountOffset) =
-            abi.decode(extraData, (address, bytes32, uint32));
+        (address requiredTarget, bytes4 requiredSelector, uint32 amountOffset) =
+            abi.decode(extraData, (address, bytes4, uint32));
 
+        require(howToCall == AuthenticatedProxy.HowToCall.Call, "STATIC_VALIDATOR/INVALID_CALLTYPE");
         require(requiredTarget == addresses[3], "STATIC_VALIDATOR/INVALID_TARGET");
 
-        bytes32 requestedSelector = abi.decode(ArrayUtils.slice(data, 0, 32), (bytes32));
+        bytes memory requestedSelector = ArrayUtils.slice(data, 0, 4);
 
-        require(requestedSelector == requiredSelector, "STATIC_VALIDATOR/INVALID_SELECTOR");
+        require(
+            ArrayUtils.arrayEq(requestedSelector, abi.encodePacked(requiredSelector)),
+            "STATIC_VALIDATOR/INVALID_SELECTOR"
+        );
 
         uint256 requestedAmount = abi.decode(ArrayUtils.slice(data, amountOffset, 32), (uint256));
         uint256 newFill = uints[4] + requestedAmount; /* currentFill */
@@ -57,6 +59,7 @@ contract StaticValidators {
         (address requiredTarget, bytes4 requiredSelector, uint32 amountOffset) =
             abi.decode(extraData, (address, bytes4, uint32));
 
+        require(howToCall == AuthenticatedProxy.HowToCall.Call, "STATIC_VALIDATOR/INVALID_CALLTYPE");
         require(requiredTarget == addresses[3], "STATIC_VALIDATOR/INVALID_TARGET");
 
         bytes memory requestedSelector = ArrayUtils.slice(data, 0, 4);
@@ -90,6 +93,7 @@ contract StaticValidators {
         (address requiredTarget, bytes4 requiredSelector, uint32 offeredAmount) =
             abi.decode(extraData, (address, bytes4, uint32));
 
+        require(howToCall == AuthenticatedProxy.HowToCall.Call, "STATIC_VALIDATOR/INVALID_CALLTYPE");
         require(requiredTarget == addresses[3], "STATIC_VALIDATOR/INVALID_TARGET");
 
         bytes memory requestedSelector = ArrayUtils.slice(data, 0, 4);

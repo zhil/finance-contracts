@@ -1,6 +1,6 @@
 const web3 = require('web3');
 
-const { deployUpgradableContract } = require('../hardhat.util');
+const { deployUpgradableContract, deployPermanentContract } = require('../hardhat.util');
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer, governor } = await getNamedAccounts();
@@ -22,6 +22,14 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     governor,
     'Flair',
     contractArguments
+  );
+
+  await deployPermanentContract(
+    deployments,
+    deployer,
+    governor,
+    'TestERC721',
+    []
   );
 };
 

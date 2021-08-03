@@ -31,18 +31,8 @@ const EIP712_OFFER = {
   ],
 };
 
-const increaseTime = (seconds) => {
-  return new Promise((resolve) =>
-    web3.currentProvider.send(
-      {
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [seconds],
-        id: 0,
-      },
-      resolve
-    )
-  );
+const increaseTime = async (seconds) => {
+  return ethers.provider.send('evm_increaseTime', [seconds]);
 };
 
 const getEIP712Data = (offer, flairContract) => {
@@ -120,20 +110,29 @@ const generateFundingOptions = ({
 };
 
 function prepareOfferArgs(offer, signature, call = {}) {
+  const addrs = [
+    offer.beneficiary,
+    offer.registry,
+    offer.maker,
+    offer.staticTarget,
+    call.target || offer.staticTarget,
+  ];
+
+  const ints = [
+    offer.maximumFill,
+    offer.listingTime,
+    offer.expirationTime,
+    offer.salt,
+  ];
+
   return [
     offer.fundingOptions,
-    [
-      offer.beneficiary,
-      offer.registry,
-      offer.maker,
-      offer.staticTarget,
-      call.target || offer.staticTarget,
-    ],
-    [offer.maximumFill, offer.listingTime, offer.expirationTime, offer.salt],
+    addrs,
+    ints,
     offer.staticSelector,
     offer.staticExtradata,
     signature,
-    call.howToCall || 1,
+    call.howToCall || 0,
     call.data || '0x',
   ];
 }

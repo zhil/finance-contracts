@@ -9,6 +9,7 @@ const {
   hashOffer,
   signOffer,
   prepareOfferArgs,
+  increaseTime,
 } = require('../util');
 
 describe('Flair', () => {
@@ -148,9 +149,9 @@ describe('Flair', () => {
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
       'mintExact(address,uint256)'
     );
-    const targetExtradata = web3Instance.eth.abi.encodeParameters(
+    const targetData = web3Instance.eth.abi.encodeParameters(
       ['address', 'uint256'],
-      [userA.signer.address.toLowerCase(), 555]
+      [userB.signer.address.toLowerCase(), 555]
     );
 
     const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -195,7 +196,7 @@ describe('Flair', () => {
       userB.flairContract.fundOffer(
         ...prepareOfferArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
-          data: targetSelector + targetExtradata.substr(2),
+          data: targetSelector + targetData.substr(2),
         }),
         {
           value: web3.utils.toWei('1.05'),
@@ -206,15 +207,79 @@ describe('Flair', () => {
       .withArgs(hash, userA.signer.address, userB.signer.address, 1, 1);
   });
 
+  it('should transfer NFT to funder when successfully funded an offer', async () => {
+    const { userA, userB } = await setupTest();
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), 888]
+    );
+
+    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+    );
+    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      staticTarget: userA.staticValidators.address.toLowerCase(),
+      staticSelector,
+      staticExtradata,
+      maximumFill: '2',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+      salt: '100230',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.flairContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userB.testERC721.address.toLowerCase(),
+        data: targetSelector + targetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.05'),
+      }
+    );
+
+    expect(
+      await userB.testERC721.ownerOf(
+        web3Instance.eth.abi.encodeParameter('uint256', 888)
+      )
+    ).to.equal(userB.signer.address);
+  });
+
   it('should successfully move the funds to funding contract when offer is funded', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
       'mintExact(address,uint256)'
     );
-    const targetExtradata = web3Instance.eth.abi.encodeParameters(
+    const targetData = web3Instance.eth.abi.encodeParameters(
       ['address', 'uint256'],
-      [userA.signer.address.toLowerCase(), 666]
+      [userB.signer.address.toLowerCase(), 666]
     );
 
     const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -257,7 +322,7 @@ describe('Flair', () => {
       await userB.flairContract.fundOffer(
         ...prepareOfferArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
-          data: targetSelector + targetExtradata.substr(2),
+          data: targetSelector + targetData.substr(2),
         }),
         {
           value: web3.utils.toWei('1.05'),
@@ -278,6 +343,91 @@ describe('Flair', () => {
         web3.utils.toWei('0'),
         web3.utils.toWei('-1.05'),
       ]
+    );
+  });
+
+  it('should successfully withdraw when offer cliff and vesting is fully finished', async () => {
+    const { userA, userB } = await setupTest();
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), 666]
+    );
+
+    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+    );
+    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        cliffPeriod: 5,
+        vestingPeriod: 5,
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      staticTarget: userA.staticValidators.address.toLowerCase(),
+      staticSelector,
+      staticExtradata,
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+      salt: '100230',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.flairContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.testERC721.address.toLowerCase(),
+        data: targetSelector + targetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.05'),
+      }
+    );
+
+    await increaseTime(100);
+
+    await expect(
+      await userA.fundingContract.releaseAllToBeneficiary()
+    ).to.changeEtherBalances(
+      [
+        userA.flairContract,
+        userA.treasuryContract,
+        userA.fundingContract,
+        userA.signer,
+        userB.signer,
+      ],
+      [
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('-1'),
+        web3.utils.toWei('1'),
+        web3.utils.toWei('0'),
+      ]
+    );
+
+    expect(await userA.tokenContract.balanceOf(userA.signer.address)).to.equal(
+      web3.utils.toWei('1000')
     );
   });
 });

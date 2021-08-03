@@ -263,8 +263,6 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
                 filled
             );
 
-        console.log("Funding Cost is %s", fundingCost);
-
         offerFundings[offer.maker][hash] += fundingCost;
 
         {

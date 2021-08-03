@@ -9,7 +9,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   const contractArguments = [
     token.address,
-    700000, // rewardRatio (Bancor Reserve Weight): 0.7
+    1000000, // rewardRatio (Bancor Reserve Weight): 1
   ];
 
   await deployUpgradableContract(

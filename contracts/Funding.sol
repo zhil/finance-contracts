@@ -14,6 +14,10 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
 
+    string public constant name = "Flair.Finance Funding Contract";
+
+    string public constant version = "0.1";
+
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant ORCHESTRATOR_ROLE = keccak256("ORCHESTRATOR_ROLE");
 

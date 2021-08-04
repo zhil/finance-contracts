@@ -23,14 +23,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     'Flair',
     contractArguments
   );
-
-  await deployPermanentContract(
-    deployments,
-    deployer,
-    governor,
-    'TestERC721',
-    []
-  );
 };
 
 module.exports.tags = ['Flair'];

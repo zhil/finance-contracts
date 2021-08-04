@@ -9,6 +9,10 @@ import "./Token.sol";
 import "./lib/PaymentRecipientUpgradable.sol";
 
 contract Treasury is AccessControlUpgradeable, PaymentRecipientUpgradable {
+    string public constant name = "Flair.Finance Treasury";
+
+    string public constant version = "0.1";
+
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
     event BoughtBack(address initiator, uint256 ethAmount, uint256 tokensBought);

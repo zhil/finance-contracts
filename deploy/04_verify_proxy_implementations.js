@@ -11,12 +11,13 @@ module.exports = async ({ deployments }) => {
     return;
   }
 
+  const flair = await deployments.get('Flair');
+  const registry = await deployments.get('Registry');
   const token = await deployments.get('Token');
   const treasury = await deployments.get('Treasury');
   const staticValidators = await deployments.get('StaticValidators');
-  const flair = await deployments.get('Flair');
 
-  for (const contract of [flair, token, treasury, staticValidators]) {
+  for (const contract of [flair, registry, token, treasury, staticValidators]) {
     try {
       if (contract.implementation) {
         await hre.run('verify:verify', {

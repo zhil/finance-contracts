@@ -6,12 +6,16 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const flair = await deployments.get('Flair');
   const funding = await deployments.get('Funding');
 
-  await deployments.execute(
-    'Registry',
-    { from: deployer },
-    'grantInitialAuthentication',
-    flair.address
-  );
+  try {
+    await deployments.execute(
+      'Registry',
+      { from: deployer },
+      'grantInitialAuthentication',
+      flair.address
+    );
+  } catch (e) {
+    console.warn('Could not grantInitialAuthentication! Perhaps already done?');
+  }
 
   await deployments.execute(
     'Token',

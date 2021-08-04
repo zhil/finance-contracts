@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -11,7 +12,7 @@ import "./lib/proxy/AuthenticatedProxy.sol";
  * @author Wyvern Protocol Developers
  */
 contract Registry is Ownable, ProxyRegistryInterface {
-    string public constant name = "Flair Proxy Registry";
+    string public constant name = "Flair.Finance Proxy Registry";
 
     /* Whether the initial auth address has been set. */
     bool public initialAddressSet = false;

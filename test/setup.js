@@ -11,6 +11,14 @@ const setupTest = deployments.createFixture(
 
     await deployments.fixture();
 
+    await deployPermanentContract(
+      deployments,
+      governor,
+      governor,
+      'TestERC721',
+      []
+    );
+
     return {
       governor: {
         signer: await ethers.getSigner(governor),

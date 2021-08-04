@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 
 import "./lib/BancorFormula.sol";
 import "./lib/ERC712.sol";
-import "./core/Offers.sol";
+import "./Offers.sol";
 
 import "hardhat/console.sol";
 

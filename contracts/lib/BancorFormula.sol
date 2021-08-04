@@ -350,7 +350,7 @@ contract BancorFormula {
     /**
      * @dev should be executed after construction (too large for the constructor)
      */
-    function __BancorFormula_init() public {
+    function __BancorFormula_init() internal {
         initMaxExpArray();
         initLambertArray();
     }

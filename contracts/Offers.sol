@@ -5,9 +5,9 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
-import "../lib/proxy/AuthenticatedProxy.sol";
-import "../lib/StaticCaller.sol";
-import "../lib/ERC1271.sol";
+import "./lib/proxy/AuthenticatedProxy.sol";
+import "./lib/StaticCaller.sol";
+import "./lib/ERC1271.sol";
 
 import "hardhat/console.sol";
 
@@ -100,13 +100,13 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
     /* FUNCTIONS */
 
-    function __Offer_init(string memory name, string memory version) public initializer {
+    function __Offer_init(string memory name, string memory version) internal initializer {
         __EIP712_init_unchained(name, version);
         __ReentrancyGuard_init_unchained();
         __Offer_init_unchained();
     }
 
-    function __Offer_init_unchained() public initializer {}
+    function __Offer_init_unchained() internal initializer {}
 
     function _hashOffer(Offer memory offer) internal pure returns (bytes32 hash) {
         /* Per EIP 712. */

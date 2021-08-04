@@ -8,6 +8,8 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "./lib/BancorFormula.sol";
 import "./lib/PaymentRecipientUpgradable.sol";
 
+import "hardhat/console.sol";
+
 contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable, BancorFormula, PaymentRecipientUpgradable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
@@ -106,22 +108,24 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
                 : 0;
         total += cliffPayment;
 
-        uint256 endOfVesting =
-            (investment.time +
-                options[1] + /* cliffPeriod */
-                options[3]); /* vestingPeriod */
-        uint256 vestedDuration = endOfVesting < checkpoint ? options[3] : endOfVesting - checkpoint;
-
         uint256 vestingPeriod = options[3];
         uint256 vestingTotalAmount = investment.amount - upfrontPayment - cliffPayment;
 
-        return
+        uint256 startOfVesting = (investment.time + options[1]/* cliffPeriod */);
+        uint256 vestedDuration = startOfVesting > checkpoint ? 0 : checkpoint - startOfVesting;
+        if (vestedDuration > vestingPeriod) {
+            vestedDuration = vestingPeriod;
+        }
+
+        uint256 vestedAmount =
             BancorFormula._saleTargetAmount(
                 vestingPeriod,
                 vestingTotalAmount,
                 uint32(options[4]), /* vestingRatio */
                 vestedDuration
             );
+
+        return total + vestedAmount;
     }
 
     function _calculatePercentage(uint256 percent, uint256 total) private pure returns (uint256) {
@@ -176,6 +180,8 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
                     _calculateReleasedAmountUntil(investmentsByHash[hash][j], lastRelease, hash);
             }
         }
+
+        require(toBeReleased > 0, "FUNDING/NOTHING_TO_RELEASE");
 
         releasedTimes[beneficiary] = now;
 

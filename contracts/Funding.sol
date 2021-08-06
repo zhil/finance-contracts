@@ -150,6 +150,25 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
     /* PUBLIC */
 
     function registerInvestment(
+        address investor,
+        uint256 filled,
+        bytes32 hash,
+        uint256 requiredPayment,
+        address beneficiary,
+        uint256[8] memory fundingOptions
+    ) public payable virtual {
+        require(hasRole(ORCHESTRATOR_ROLE, _msgSender()), "FUNDING/NOT_ORCHESTRATOR");
+
+        if (filledAmountByBeneficiaryAndHash[beneficiary][hash] < 1) {
+            hashesByBeneficiary[beneficiary].push(hash);
+            optionsByHash[hash] = fundingOptions;
+        }
+
+        filledAmountByBeneficiaryAndHash[beneficiary][hash] += filled;
+        investmentsByHash[hash].push(Investment(msg.value, block.timestamp));
+    }
+
+    function cancelInvestment(
         uint256 filled,
         bytes32 hash,
         uint256 requiredPayment,
@@ -174,18 +193,24 @@ contract Funding is ContextUpgradeable, ReentrancyGuardUpgradeable, AccessContro
 
         require(lastRelease <= now - 1 hours, "FUNDING/HOURLY_LIMIT");
 
+        uint256 totalToBeReleased;
         uint256 toBeReleased;
 
         for (uint256 i = 0; i < hashesByBeneficiary[beneficiary].length; i++) {
             bytes32 hash = hashesByBeneficiary[beneficiary][i];
             for (uint256 j = 0; j < investmentsByHash[hash].length; j++) {
-                toBeReleased +=
+                canceledAmount
+                toBeReleased =
                     _calculateReleasedAmountUntil(investmentsByHash[hash][j], now, hash) -
                     _calculateReleasedAmountUntil(investmentsByHash[hash][j], lastRelease, hash);
+
+                if (toBeReleased - canceledAmount)
+
+                totalToBeReleased += toBeReleased;
             }
         }
 
-        require(toBeReleased > 0, "FUNDING/NOTHING_TO_RELEASE");
+        require(totalToBeReleased > 0, "FUNDING/NOTHING_TO_RELEASE");
 
         releasedTimes[beneficiary] = now;
 

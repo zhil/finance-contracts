@@ -770,6 +770,273 @@ describe('Flair', () => {
     );
   });
 
+  it('should withdraw half vested payment when half vesting period, with upfront payment, no cliff period, no cliff payment', async () => {
+    const { userA, userB } = await setupTest();
+    const nftId = Math.round(Math.random() * 1000000000);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), nftId]
+    );
+
+    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+    );
+    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 1000, // 10%
+        cliffPeriod: 0,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      staticTarget: userA.staticValidators.address.toLowerCase(),
+      staticSelector,
+      staticExtradata,
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+      salt: '100230',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.flairContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.testERC721.address.toLowerCase(),
+        data: targetSelector + targetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.05'),
+      }
+    );
+
+    await increaseTime(100);
+
+    await expect(
+      await userA.fundingContract.releaseAllToBeneficiary()
+    ).to.changeEtherBalances(
+      [
+        userA.flairContract,
+        userA.treasuryContract,
+        userA.fundingContract,
+        userA.signer,
+        userB.signer,
+      ],
+      [
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('-0.55'),
+        web3.utils.toWei('0.55'),
+        web3.utils.toWei('0'),
+      ]
+    );
+
+    expect(await userA.tokenContract.balanceOf(userA.signer.address)).to.equal(
+      web3.utils.toWei('550')
+    );
+  });
+
+  it('should withdraw half vested payment when half vesting period, with upfront payment, after cliff period, no cliff payment', async () => {
+    const { userA, userB } = await setupTest();
+    const nftId = Math.round(Math.random() * 1000000000);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), nftId]
+    );
+
+    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+    );
+    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 1000, // 10%
+        cliffPeriod: 50,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      staticTarget: userA.staticValidators.address.toLowerCase(),
+      staticSelector,
+      staticExtradata,
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+      salt: '100230',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.flairContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.testERC721.address.toLowerCase(),
+        data: targetSelector + targetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.05'),
+      }
+    );
+
+    await increaseTime(150);
+
+    await expect(
+      await userA.fundingContract.releaseAllToBeneficiary()
+    ).to.changeEtherBalances(
+      [
+        userA.flairContract,
+        userA.treasuryContract,
+        userA.fundingContract,
+        userA.signer,
+        userB.signer,
+      ],
+      [
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('-0.55'),
+        web3.utils.toWei('0.55'),
+        web3.utils.toWei('0'),
+      ]
+    );
+
+    expect(await userA.tokenContract.balanceOf(userA.signer.address)).to.equal(
+      web3.utils.toWei('550')
+    );
+  });
+
+  it('should withdraw half vested payment when half vesting period, with upfront payment, after cliff period, with cliff payment', async () => {
+    const { userA, userB } = await setupTest();
+    const nftId = Math.round(Math.random() * 1000000000);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), nftId]
+    );
+
+    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+    );
+    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 1000, // 10%
+        cliffPeriod: 50,
+        cliffPayment: 1000, // 10%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      staticTarget: userA.staticValidators.address.toLowerCase(),
+      staticSelector,
+      staticExtradata,
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+      salt: '100230',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.flairContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.testERC721.address.toLowerCase(),
+        data: targetSelector + targetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.05'),
+      }
+    );
+
+    await increaseTime(150);
+
+    await expect(
+      await userA.fundingContract.releaseAllToBeneficiary()
+    ).to.changeEtherBalances(
+      [
+        userA.flairContract,
+        userA.treasuryContract,
+        userA.fundingContract,
+        userA.signer,
+        userB.signer,
+      ],
+      [
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('-0.6'),
+        web3.utils.toWei('0.6'),
+        web3.utils.toWei('0'),
+      ]
+    );
+
+    expect(await userA.tokenContract.balanceOf(userA.signer.address)).to.equal(
+      web3.utils.toWei('600')
+    );
+  });
+
   it('should successfully withdraw when offer cliff and vesting is fully finished', async () => {
     const { userA, userB } = await setupTest();
 

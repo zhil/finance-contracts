@@ -204,6 +204,7 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         bytes calldata data
     ) public payable {
         _fundOffer(
+            _msgSender(),
             Offer(
                 addrs[0], // beneficiary
                 fundingOptions,
@@ -245,6 +246,7 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     /* INTERNAL */
 
     function _fundOffer(
+        address taker,
         Offer memory offer,
         Call memory call,
         bytes memory signature
@@ -276,7 +278,8 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         (bool success, ) =
             _funding.call{value: fundingCost}(
                 abi.encodeWithSignature(
-                    "registerInvestment(uint256,bytes32,uint256,address,uint256[8])",
+                    "registerInvestment(address,uint256,bytes32,uint256,address,uint256[8])",
+                    taker
                     filled,
                     hash,
                     fundingCost,

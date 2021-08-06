@@ -23,21 +23,26 @@ describe('Flair', () => {
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: ZERO_ADDRESS,
-      staticSelector: '0x00000000',
-      staticExtradata: '0x',
+      fundingValidatorTarget: ZERO_ADDRESS,
+      fundingValidatorSelector: '0x00000000',
+      fundingValidatorExtradata: '0x',
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '0',
       salt: '0',
     };
 
-    const hash = await userA.flairContract.hashOffer(...Object.values(example));
+    const hash = await userA.flairContract.hashOffer(
+      ...prepareOfferArgs(example)
+    );
 
     expect(hashOffer(example, userA.flairContract)).to.equal(hash);
   });
 
-  it('does not validate offer parameters with invalid staticTarget', async () => {
+  it('does not validate offer parameters with invalid fundingValidatorTarget', async () => {
     const { userA } = await setupTest();
 
     const example = {
@@ -45,9 +50,12 @@ describe('Flair', () => {
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: ZERO_ADDRESS,
-      staticSelector: '0x00000000',
-      staticExtradata: '0x',
+      fundingValidatorTarget: ZERO_ADDRESS,
+      fundingValidatorSelector: '0x00000000',
+      fundingValidatorExtradata: '0x',
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '0',
@@ -69,9 +77,12 @@ describe('Flair', () => {
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.flairContract.address.toLowerCase(),
-      staticSelector: '0x00000000',
-      staticExtradata: '0x',
+      fundingValidatorTarget: userA.flairContract.address.toLowerCase(),
+      fundingValidatorSelector: '0x00000000',
+      fundingValidatorExtradata: '0x',
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -102,9 +113,12 @@ describe('Flair', () => {
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.flairContract.address.toLowerCase(),
-      staticSelector: '0x00000000',
-      staticExtradata: '0x',
+      fundingValidatorTarget: userA.flairContract.address.toLowerCase(),
+      fundingValidatorSelector: '0x00000000',
+      fundingValidatorExtradata: '0x',
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -154,10 +168,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 555]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -173,9 +188,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -218,10 +236,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 888]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -237,9 +256,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '2',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -282,10 +304,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 666]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -301,9 +324,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -358,10 +384,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -380,9 +407,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -430,10 +460,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -452,9 +483,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -517,10 +551,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -540,9 +575,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -605,10 +643,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -628,9 +667,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -693,10 +735,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -717,9 +760,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -782,10 +828,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -806,9 +853,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -871,10 +921,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -895,9 +946,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -960,10 +1014,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -984,9 +1039,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
@@ -1048,10 +1106,11 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 666]
     );
 
-    const staticSelector = web3Instance.eth.abi.encodeFunctionSignature(
-      'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
-    );
-    const staticExtradata = web3Instance.eth.abi.encodeParameters(
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
       [userA.testERC721.address.toLowerCase(), targetSelector, 1]
     );
@@ -1072,9 +1131,12 @@ describe('Flair', () => {
       }),
       registry: userA.registryContract.address.toLowerCase(),
       maker: userA.signer.address.toLowerCase(),
-      staticTarget: userA.staticValidators.address.toLowerCase(),
-      staticSelector,
-      staticExtradata,
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',

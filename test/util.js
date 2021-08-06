@@ -21,9 +21,12 @@ const EIP712_OFFER = {
     { name: 'fundingOptions', type: 'uint256[8]' },
     { name: 'registry', type: 'address' },
     { name: 'maker', type: 'address' },
-    { name: 'staticTarget', type: 'address' },
-    { name: 'staticSelector', type: 'bytes4' },
-    { name: 'staticExtradata', type: 'bytes' },
+    { name: 'fundingValidatorTarget', type: 'address' },
+    { name: 'fundingValidatorSelector', type: 'bytes4' },
+    { name: 'fundingValidatorExtradata', type: 'bytes' },
+    { name: 'cancellationValidatorTarget', type: 'address' },
+    { name: 'cancellationValidatorSelector', type: 'bytes4' },
+    { name: 'cancellationValidatorExtradata', type: 'bytes' },
     { name: 'maximumFill', type: 'uint256' },
     { name: 'listingTime', type: 'uint256' },
     { name: 'expirationTime', type: 'uint256' },
@@ -114,8 +117,9 @@ function prepareOfferArgs(offer, signature, call = {}) {
     offer.beneficiary,
     offer.registry,
     offer.maker,
-    offer.staticTarget,
-    call.target || offer.staticTarget,
+    offer.fundingValidatorTarget,
+    offer.cancellationValidatorTarget,
+    call.target,
   ];
 
   const ints = [
@@ -125,16 +129,19 @@ function prepareOfferArgs(offer, signature, call = {}) {
     offer.salt,
   ];
 
-  return [
+  const args = [
     offer.fundingOptions,
     addrs,
     ints,
-    offer.staticSelector,
-    offer.staticExtradata,
-    signature,
-    call.howToCall || 0,
-    call.data || '0x',
+    offer.fundingValidatorSelector,
+    offer.fundingValidatorExtradata,
   ];
+
+  if (signature && call) {
+    args.push(signature, call.howToCall || 0, call.data || '0x');
+  }
+
+  return args;
 }
 
 module.exports = {

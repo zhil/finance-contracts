@@ -36,7 +36,7 @@ contract Registry is Ownable, ProxyRegistryInterface {
     */
     uint256 public DELAY_PERIOD = 2 weeks;
 
-    constructor() public {
+    constructor() {
         AuthenticatedProxy impl = new AuthenticatedProxy();
         impl.initialize(address(this), this);
         impl.setRevoke(true);

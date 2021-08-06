@@ -35,12 +35,18 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         address registry;
         /* Offer maker address. */
         address maker;
-        /* Offer static target. */
-        address staticTarget;
-        /* Offer static selector. */
-        bytes4 staticSelector;
-        /* Offer static extradata. */
-        bytes staticExtradata;
+        /* Offer funding static target for validating if user-defined call is acceptable upon investment. */
+        address fundingValidatorTarget;
+        /* Offer funding static selector. */
+        bytes4 fundingValidatorSelector;
+        /* Offer funding static extradata. */
+        bytes fundingValidatorExtradata;
+        /* Offer cancellation static target for validating if user-defined call is acceptable upon requesting a refund. */
+        address cancellationValidatorTarget;
+        /* Offer cancellation static selector. */
+        bytes4 cancellationValidatorSelector;
+        /* Offer cancellation static extradata. */
+        bytes cancellationValidatorExtradata;
         /* Offer maximum fill factor. */
         uint256 maximumFill;
         /* Offer listing timestamp. */
@@ -66,7 +72,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
     /* Order typehash for EIP 712 compatibility. */
     bytes32 constant OFFER_TYPEHASH =
         keccak256(
-            "Offer(address beneficiary,uint256[8] fundingOptions,address registry,address maker,address staticTarget,bytes4 staticSelector,bytes staticExtradata,uint256 maximumFill,uint256 listingTime,uint256 expirationTime,uint256 salt)"
+            "Offer(address beneficiary,uint256[8] fundingOptions,address registry,address maker,address fundingValidatorTarget,bytes4 fundingValidatorSelector,bytes fundingValidatorExtradata,address cancellationValidatorTarget,bytes4 cancellationValidatorSelector,bytes cancellationValidatorExtradata,uint256 maximumFill,uint256 listingTime,uint256 expirationTime,uint256 salt)"
         );
 
     /* VARIABLES */
@@ -88,9 +94,12 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         bytes32 indexed hash,
         address registry,
         address indexed maker,
-        address staticTarget,
-        bytes4 staticSelector,
-        bytes staticExtradata,
+        address fundingValidatorTarget,
+        bytes4 fundingValidatorSelector,
+        bytes fundingValidatorExtradata,
+        address cancellationValidatorTarget,
+        bytes4 cancellationValidatorSelector,
+        bytes cancellationValidatorExtradata,
         uint256 maximumFill,
         uint256 listingTime,
         uint256 expirationTime,
@@ -110,20 +119,26 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
     function _hashOffer(Offer memory offer) internal pure returns (bytes32 hash) {
         /* Per EIP 712. */
-        return keccak256(abi.encode(
-            OFFER_TYPEHASH,
-            offer.beneficiary,
-            keccak256(abi.encode(offer.fundingOptions)),
-            offer.registry,
-            offer.maker,
-            offer.staticTarget,
-            offer.staticSelector,
-            keccak256(offer.staticExtradata),
-            offer.maximumFill,
-            offer.listingTime,
-            offer.expirationTime,
-            offer.salt
-         ));
+        return
+            keccak256(
+                abi.encode(
+                    OFFER_TYPEHASH,
+                    offer.beneficiary,
+                    keccak256(abi.encode(offer.fundingOptions)),
+                    offer.registry,
+                    offer.maker,
+                    offer.fundingValidatorTarget,
+                    offer.fundingValidatorSelector,
+                    keccak256(offer.fundingValidatorExtradata),
+                    offer.cancellationValidatorTarget,
+                    offer.cancellationValidatorSelector,
+                    keccak256(offer.cancellationValidatorExtradata),
+                    offer.maximumFill,
+                    offer.listingTime,
+                    offer.expirationTime,
+                    offer.salt
+                )
+            );
     }
 
     function _hashToSign(bytes32 offerHash) internal view returns (bytes32 hash) {
@@ -154,7 +169,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         }
 
         /* Offer static target must exist. */
-        if (!_exists(offer.staticTarget)) {
+        if (!_exists(offer.fundingValidatorTarget)) {
             return false;
         }
 
@@ -206,7 +221,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         return false;
     }
 
-    function _encodeStaticCall(
+    function _encodeFundingStaticValidator(
         Offer memory offer,
         Call memory call,
         address taker,
@@ -219,8 +234,8 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
         return
             abi.encodeWithSelector(
-                offer.staticSelector,
-                offer.staticExtradata,
+                offer.fundingValidatorSelector,
+                offer.fundingValidatorExtradata,
                 addresses,
                 call.howToCall,
                 uints,
@@ -228,14 +243,54 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
             );
     }
 
-    function _executeStaticCall(
+    function _executeFundingStaticValidator(
         Offer memory offer,
         Call memory call,
         address taker,
         uint256 value,
         uint256 fill
     ) internal view returns (uint256) {
-        return staticCallUint256(offer.staticTarget, _encodeStaticCall(offer, call, taker, value, fill));
+        return
+            staticCallUint256(
+                offer.fundingValidatorTarget,
+                _encodeFundingStaticValidator(offer, call, taker, value, fill)
+            );
+    }
+
+    function _encodeCancellationStaticValidator(
+        Offer memory offer,
+        Call memory call,
+        address taker,
+        uint256 value,
+        uint256 fill
+    ) internal pure returns (bytes memory) {
+        /* This array wrapping is necessary to preserve static call target function stack space. */
+        address[5] memory addresses = [offer.beneficiary, offer.registry, offer.maker, call.target, taker];
+        uint256[5] memory uints = [value, offer.maximumFill, offer.listingTime, offer.expirationTime, fill];
+
+        return
+            abi.encodeWithSelector(
+                offer.cancellationValidatorSelector,
+                offer.cancellationValidatorExtradata,
+                addresses,
+                call.howToCall,
+                uints,
+                call.data
+            );
+    }
+
+    function _executeCancellationStaticValidator(
+        Offer memory offer,
+        Call memory call,
+        address taker,
+        uint256 value,
+        uint256 fill
+    ) internal view returns (uint256) {
+        return
+            staticCallUint256(
+                offer.cancellationValidatorTarget,
+                _encodeCancellationStaticValidator(offer, call, taker, value, fill)
+            );
     }
 
     function _executeCall(
@@ -297,9 +352,12 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
             hash,
             offer.registry,
             offer.maker,
-            offer.staticTarget,
-            offer.staticSelector,
-            offer.staticExtradata,
+            offer.fundingValidatorTarget,
+            offer.fundingValidatorSelector,
+            offer.fundingValidatorExtradata,
+            offer.cancellationValidatorTarget,
+            offer.cancellationValidatorSelector,
+            offer.cancellationValidatorExtradata,
             offer.maximumFill,
             offer.listingTime,
             offer.expirationTime,
@@ -322,7 +380,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         emit OfferFillChanged(hash, msg.sender, fill);
     }
 
-    function _executeOffer(
+    function _executeOfferFunding(
         Offer memory offer,
         Call memory call,
         bytes memory signature
@@ -355,7 +413,52 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         previousFill = fills[offer.maker][hash];
 
         /* Execute offer static call, assert success, capture returned new fill. */
-        newFill = _executeStaticCall(offer, call, msg.sender, msg.value, previousFill);
+        newFill = _executeFundingStaticValidator(offer, call, msg.sender, msg.value, previousFill);
+
+        /* EFFECTS */
+
+        /* Update offer fill, if necessary. */
+        if (newFill != previousFill) {
+            fills[offer.maker][hash] = newFill;
+        }
+
+        return (hash, previousFill, newFill);
+    }
+
+    function _executeOfferCancellation(
+        Offer memory offer,
+        Call memory call,
+        bytes memory signature
+    )
+        internal
+        nonReentrant
+        returns (
+            bytes32 hash,
+            uint256 previousFill,
+            uint256 newFill
+        )
+    {
+        /* CHECKS */
+
+        /* Calculate offer hash. */
+        hash = _hashOffer(offer);
+
+        /* Check offer validity. */
+        require(_validateOfferParameters(offer, hash), "OFFERS/INVALID");
+
+        /* Check offer authorization. */
+        require(_validateOfferAuthorization(hash, offer.maker, signature), "OFFERS/UNAUTHORIZED");
+
+        /* INTERACTIONS */
+
+        /* Execute call, assert success. */
+        require(_executeCall(ProxyRegistryInterface(offer.registry), offer.maker, call), "OFFERS/FAILED");
+
+        /* Fetch previous offer fill. */
+        previousFill = fills[offer.maker][hash];
+
+        /* Execute offer static call, assert success, capture returned new fill. */
+        newFill = _executeCancellationStaticValidator(offer, call, msg.sender, msg.value, previousFill);
 
         /* EFFECTS */
 

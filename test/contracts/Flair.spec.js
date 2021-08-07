@@ -6,26 +6,26 @@ const { setupTest } = require('../setup');
 const {
   ZERO_ADDRESS,
   generateFundingOptions,
-  hashOffer,
-  signOffer,
-  prepareOfferArgs,
+  hashCampaign,
+  signCampaign,
+  prepareCampaignArgs,
   increaseTime,
 } = require('../util');
 
 describe('Flair', () => {
   const web3Instance = new web3(web3.currentProvider);
 
-  it('should successfully hash an offer', async () => {
+  it('should successfully hash an campaign', async () => {
     const { userA } = await setupTest();
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: ZERO_ADDRESS,
-      fundingValidatorSelector: '0x00000000',
-      fundingValidatorExtradata: '0x',
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: ZERO_ADDRESS,
+      contributionValidatorSelector: '0x00000000',
+      contributionValidatorExtradata: '0x',
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -34,24 +34,24 @@ describe('Flair', () => {
       expirationTime: '0',
     };
 
-    const hash = await userA.flairContract.hashOffer(
-      ...prepareOfferArgs(example)
+    const hash = await userA.flairContract.hashCampaign(
+      ...prepareCampaignArgs(example)
     );
 
-    expect(hashOffer(example, userA.flairContract)).to.equal(hash);
+    expect(hashCampaign(example, userA.flairContract)).to.equal(hash);
   });
 
-  it('does not validate offer parameters with invalid fundingValidatorTarget', async () => {
+  it('does not validate campaign parameters with invalid contributionValidatorTarget', async () => {
     const { userA } = await setupTest();
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: ZERO_ADDRESS,
-      fundingValidatorSelector: '0x00000000',
-      fundingValidatorExtradata: '0x',
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: ZERO_ADDRESS,
+      contributionValidatorSelector: '0x00000000',
+      contributionValidatorExtradata: '0x',
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -61,8 +61,8 @@ describe('Flair', () => {
     };
 
     expect(
-      await userA.flairContract.validateOfferParameters(
-        ...prepareOfferArgs(example)
+      await userA.flairContract.validateCampaignParameters(
+        ...prepareCampaignArgs(example)
       )
     ).to.equal(false);
   });
@@ -74,10 +74,10 @@ describe('Flair', () => {
       beneficiary: userA.signer.address.toLowerCase(),
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.flairContract.address.toLowerCase(),
-      fundingValidatorSelector: '0x00000000',
-      fundingValidatorExtradata: '0x',
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.flairContract.address.toLowerCase(),
+      contributionValidatorSelector: '0x00000000',
+      contributionValidatorExtradata: '0x',
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -86,15 +86,15 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
     );
-    const hash = hashOffer(example, userA.flairContract);
+    const hash = hashCampaign(example, userA.flairContract);
 
     expect(
-      await userA.flairContract.validateOfferAuthorization(
+      await userA.flairContract.validateCampaignAuthorization(
         hash,
         userA.signer.address.toLowerCase(),
         signature
@@ -109,10 +109,10 @@ describe('Flair', () => {
       beneficiary: userA.signer.address.toLowerCase(),
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.flairContract.address.toLowerCase(),
-      fundingValidatorSelector: '0x00000000',
-      fundingValidatorExtradata: '0x',
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.flairContract.address.toLowerCase(),
+      contributionValidatorSelector: '0x00000000',
+      contributionValidatorExtradata: '0x',
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -121,21 +121,21 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = hashOffer(example, userA.flairContract);
+    const hash = hashCampaign(example, userA.flairContract);
 
-    const resultOne = await userA.flairContract.getOfferFundingCost(
+    const resultOne = await userA.flairContract.getCampaignFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
       1
     );
-    const resultTwo = await userA.flairContract.getOfferFundingCost(
+    const resultTwo = await userA.flairContract.getCampaignFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
       2
     );
-    const resultFive = await userA.flairContract.getOfferFundingCost(
+    const resultFive = await userA.flairContract.getCampaignFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
@@ -153,7 +153,7 @@ describe('Flair', () => {
     );
   });
 
-  it('should successfully fund an offer for 1 ETH fixed-price', async () => {
+  it('should successfully fund an campaign for 1 ETH fixed-price', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -164,14 +164,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 555]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -183,10 +184,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -195,9 +196,9 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = await hashOffer(example, userA.flairContract);
+    const hash = await hashCampaign(example, userA.flairContract);
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -206,8 +207,8 @@ describe('Flair', () => {
     await userA.registryContract.registerProxy();
 
     await expect(
-      userB.flairContract.fundOffer(
-        ...prepareOfferArgs(example, signature, {
+      userB.flairContract.fundCampaign(
+        ...prepareCampaignArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
@@ -216,11 +217,11 @@ describe('Flair', () => {
         }
       )
     )
-      .to.emit(userA.flairContract, 'OfferFunded')
+      .to.emit(userA.flairContract, 'CampaignFunded')
       .withArgs(hash, userA.signer.address, userB.signer.address, 1, 1);
   });
 
-  it('should successfully fund an offer and emit contribution event', async () => {
+  it('should successfully fund an campaign and emit contribution event', async () => {
     const { userA, userB } = await setupTest();
     const nftId = Math.round(Math.random() * 1000000000);
 
@@ -232,14 +233,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -251,10 +253,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -263,9 +265,9 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = await hashOffer(example, userA.flairContract);
+    const hash = await hashCampaign(example, userA.flairContract);
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -274,8 +276,8 @@ describe('Flair', () => {
     await userA.registryContract.registerProxy();
 
     await expect(
-      userB.flairContract.fundOffer(
-        ...prepareOfferArgs(example, signature, {
+      userB.flairContract.fundCampaign(
+        ...prepareCampaignArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
@@ -286,7 +288,7 @@ describe('Flair', () => {
     ).to.emit(userA.fundingContract, 'ContributionRegistered');
   });
 
-  it('should transfer NFT to funder when successfully funded an offer', async () => {
+  it('should transfer NFT to funder when successfully funded an campaign', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -297,14 +299,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 888]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -316,10 +319,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -328,7 +331,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -336,8 +339,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userB.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -353,7 +356,7 @@ describe('Flair', () => {
     ).to.equal(userB.signer.address);
   });
 
-  it('should successfully move the funds to funding contract when offer is funded', async () => {
+  it('should successfully move the funds to funding contract when campaign is funded', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -364,14 +367,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 666]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -383,10 +387,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -395,7 +399,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -404,8 +408,8 @@ describe('Flair', () => {
     await userA.registryContract.registerProxy();
 
     await expect(
-      await userB.flairContract.fundOffer(
-        ...prepareOfferArgs(example, signature, {
+      await userB.flairContract.fundCampaign(
+        ...prepareCampaignArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
@@ -443,14 +447,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -465,10 +470,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -477,7 +482,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -485,8 +490,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -518,14 +523,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -540,10 +546,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -552,7 +558,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -560,8 +566,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -608,14 +614,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -631,10 +638,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -643,7 +650,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -651,8 +658,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -699,14 +706,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -722,10 +730,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -734,7 +742,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -742,8 +750,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -752,6 +760,7 @@ describe('Flair', () => {
       }
     );
 
+    // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
     await increaseTime(100);
 
     await expect(
@@ -790,14 +799,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -814,10 +824,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -826,7 +836,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -834,8 +844,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -882,14 +892,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -906,10 +917,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -918,7 +929,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -926,8 +937,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -974,14 +985,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -998,10 +1010,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -1010,7 +1022,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -1018,8 +1030,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -1066,14 +1078,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), nftId]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -1090,10 +1103,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -1102,7 +1115,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -1110,8 +1123,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -1170,14 +1183,15 @@ describe('Flair', () => {
       ]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), fundingTargetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), fundingTargetSelector, 1]
+      );
 
     const cancellationValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
@@ -1204,10 +1218,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: userA.staticValidators.address.toLowerCase(),
       cancellationValidatorSelector,
       cancellationValidatorExtradata,
@@ -1216,7 +1230,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -1224,8 +1238,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: fundingTargetSelector + fundingTargetData.substr(2),
       }),
@@ -1234,15 +1248,15 @@ describe('Flair', () => {
       }
     );
 
-    // Approve maker's proxy to take back the NFT from taker
-    const makerProxy = await userB.registryContract.proxies(
+    // Approve creator's proxy to take back the NFT from taker
+    const creatorProxy = await userB.registryContract.proxies(
       userA.signer.address
     );
-    await userB.testERC721.setApprovalForAll(makerProxy, true);
+    await userB.testERC721.setApprovalForAll(creatorProxy, true);
 
     const contributionId =
       (await userB.fundingContract.totalContributionsByHash(
-        hashOffer(example, userB.flairContract)
+        hashCampaign(example, userB.flairContract)
       )) - 1;
 
     // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
@@ -1250,7 +1264,7 @@ describe('Flair', () => {
 
     await expect(
       await userB.flairContract.cancelFunding(
-        ...prepareOfferArgs(
+        ...prepareCampaignArgs(
           example,
           signature,
           {
@@ -1278,7 +1292,7 @@ describe('Flair', () => {
     );
   });
 
-  it('should successfully withdraw when offer cliff and vesting is fully finished', async () => {
+  it('should successfully withdraw when campaign cliff and vesting is fully finished', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -1289,14 +1303,15 @@ describe('Flair', () => {
       [userB.signer.address.toLowerCase(), 666]
     );
 
-    const fundingValidatorSelector =
+    const contributionValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
         'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
-    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
-      ['address', 'bytes4', 'uint32'],
-      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
-    );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
 
     const example = {
       beneficiary: userA.signer.address.toLowerCase(),
@@ -1313,10 +1328,10 @@ describe('Flair', () => {
         priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
       }),
       registry: userA.registryContract.address.toLowerCase(),
-      maker: userA.signer.address.toLowerCase(),
-      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
-      fundingValidatorSelector,
-      fundingValidatorExtradata,
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
       cancellationValidatorTarget: ZERO_ADDRESS,
       cancellationValidatorSelector: '0x00000000',
       cancellationValidatorExtradata: '0x',
@@ -1325,7 +1340,7 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signOffer(
+    const signature = await signCampaign(
       example,
       userA.signer,
       userA.flairContract
@@ -1333,8 +1348,8 @@ describe('Flair', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundOffer(
-      ...prepareOfferArgs(example, signature, {
+    await userB.flairContract.fundCampaign(
+      ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),

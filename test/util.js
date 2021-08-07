@@ -14,16 +14,16 @@ const EIP712_DOMAIN = {
     { name: 'verifyingContract', type: 'address' },
   ],
 };
-const EIP712_OFFER = {
-  name: 'Offer',
+const EIP712_CAMPAIGN = {
+  name: 'Campaign',
   fields: [
     { name: 'beneficiary', type: 'address' },
     { name: 'fundingOptions', type: 'uint256[8]' },
     { name: 'registry', type: 'address' },
-    { name: 'maker', type: 'address' },
-    { name: 'fundingValidatorTarget', type: 'address' },
-    { name: 'fundingValidatorSelector', type: 'bytes4' },
-    { name: 'fundingValidatorExtradata', type: 'bytes' },
+    { name: 'creator', type: 'address' },
+    { name: 'contributionValidatorTarget', type: 'address' },
+    { name: 'contributionValidatorSelector', type: 'bytes4' },
+    { name: 'contributionValidatorExtradata', type: 'bytes' },
     { name: 'cancellationValidatorTarget', type: 'address' },
     { name: 'cancellationValidatorSelector', type: 'bytes4' },
     { name: 'cancellationValidatorExtradata', type: 'bytes' },
@@ -37,11 +37,11 @@ const increaseTime = async (seconds) => {
   return ethers.provider.send('evm_increaseTime', [seconds]);
 };
 
-const getEIP712Data = (offer, flairContract) => {
+const getEIP712Data = (campaign, flairContract) => {
   return {
     types: {
       EIP712Domain: EIP712_DOMAIN.fields,
-      Offer: EIP712_OFFER.fields,
+      Campaign: EIP712_CAMPAIGN.fields,
     },
     domain: {
       name: 'Flair.Finance',
@@ -49,28 +49,28 @@ const getEIP712Data = (offer, flairContract) => {
       chainId: 31337,
       verifyingContract: flairContract.address.toLowerCase(),
     },
-    primaryType: 'Offer',
-    message: offer,
+    primaryType: 'Campaign',
+    message: campaign,
   };
 };
 
-const hashOffer = (offer, flairContract) => {
-  const data = getEIP712Data(offer, flairContract);
+const hashCampaign = (campaign, flairContract) => {
+  const data = getEIP712Data(campaign, flairContract);
   return `0x${sigUtils.TypedDataUtils.hashStruct(
     data.primaryType,
-    offer,
+    campaign,
     data.types
   ).toString('hex')}`;
 };
 
-const hashToSign = (offer, flairContract) => {
+const hashToSign = (campaign, flairContract) => {
   return `0x${sigUtils.TypedDataUtils.sign(
-    getEIP712Data(offer, flairContract)
+    getEIP712Data(campaign, flairContract)
   ).toString('hex')}`;
 };
 
-const signOffer = async (offer, account, flairContract) => {
-  const data = getEIP712Data(offer, flairContract);
+const signCampaign = async (campaign, account, flairContract) => {
+  const data = getEIP712Data(campaign, flairContract);
 
   const signature = await account.provider.send('eth_signTypedData_v4', [
     account.address.toLowerCase(),
@@ -111,30 +111,30 @@ const generateFundingOptions = ({
   ];
 };
 
-function prepareOfferArgs(offer, signature, call = {}, extraInts = []) {
+function prepareCampaignArgs(campaign, signature, call = {}, extraInts = []) {
   const addrs = [
-    offer.beneficiary,
-    offer.registry,
-    offer.maker,
-    offer.fundingValidatorTarget,
-    offer.cancellationValidatorTarget,
+    campaign.beneficiary,
+    campaign.registry,
+    campaign.creator,
+    campaign.contributionValidatorTarget,
+    campaign.cancellationValidatorTarget,
     call.target || ZERO_ADDRESS,
   ];
 
   const ints = [
-    offer.maximumFill,
-    offer.listingTime,
-    offer.expirationTime,
+    campaign.maximumFill,
+    campaign.listingTime,
+    campaign.expirationTime,
     ...extraInts,
   ];
 
   const args = [
-    offer.fundingOptions,
+    campaign.fundingOptions,
     addrs,
     ints,
-    [offer.fundingValidatorSelector, offer.cancellationValidatorSelector],
-    offer.fundingValidatorExtradata,
-    offer.cancellationValidatorExtradata,
+    [campaign.contributionValidatorSelector, campaign.cancellationValidatorSelector],
+    campaign.contributionValidatorExtradata,
+    campaign.cancellationValidatorExtradata,
   ];
 
   if (signature && call) {
@@ -148,9 +148,9 @@ module.exports = {
   ZERO_ADDRESS,
   ZERO_BYTES32,
   increaseTime,
-  hashOffer,
+  hashCampaign,
   hashToSign,
-  signOffer,
+  signCampaign,
   generateFundingOptions,
-  prepareOfferArgs,
+  prepareCampaignArgs,
 };

@@ -291,9 +291,9 @@ contract Flair is Campaigns, BancorFormula, AccessControlUpgradeable {
         address taker = _msgSender();
         (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeCampaignContribution(campaign, call, signature);
 
-        uint256 filled = newFill - previousFill;
+        require(newFill > previousFill, "FLAIR_FINANCE/NOT_FILLED");
 
-        require(filled > 0, "FLAIR_FINANCE/UNFILLED");
+        uint256 filled = newFill - previousFill;
 
         uint256 fundingCost =
             BancorFormula._fundCost(
@@ -340,7 +340,7 @@ contract Flair is Campaigns, BancorFormula, AccessControlUpgradeable {
         address taker = _msgSender();
         (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeCampaignCancellation(campaign, call, signature);
 
-        require(previousFill >= newFill, "FLAIR_FINANCE/NOT_UNFILLED");
+        require(previousFill > newFill, "FLAIR_FINANCE/NOT_UNFILLED");
 
         uint256 unfilled = previousFill - newFill;
 

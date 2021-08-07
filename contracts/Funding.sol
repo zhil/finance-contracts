@@ -20,7 +20,7 @@ contract Funding is
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
 
-    string public constant name = "Flair.Finance Funding Pool";
+    string public constant name = "Flair Public Funding Pool";
 
     string public constant version = "0.1";
 

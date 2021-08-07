@@ -2,7 +2,7 @@ pragma solidity 0.8.3;
 
 abstract contract ERC1271 {
     /**
-     * @dev Should return whether the signature provided is valid for the provided data
+     * @dev Should return whether the signatureHex provided is valid for the provided data
      * @param _data Arbitrary length data signed on the behalf of address(this)
      * @param _signature Signature byte array associated with _data
      *

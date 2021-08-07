@@ -1,5 +1,3 @@
-const web3 = require('web3');
-
 const { deployUpgradableContract } = require('../hardhat.util');
 
 module.exports = async ({ getNamedAccounts, deployments }) => {

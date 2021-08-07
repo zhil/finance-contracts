@@ -12,7 +12,7 @@ const {
   increaseTime,
 } = require('../util');
 
-describe('Flair', () => {
+describe('Finance', () => {
   const web3Instance = new web3(web3.currentProvider);
 
   it('should successfully hash an campaign', async () => {
@@ -34,11 +34,11 @@ describe('Flair', () => {
       expirationTime: '0',
     };
 
-    const hash = await userA.flairContract.hashCampaign(
+    const hash = await userA.financeContract.hashCampaign(
       ...prepareCampaignArgs(example)
     );
 
-    expect(hashCampaign(example, userA.flairContract)).to.equal(hash);
+    expect(hashCampaign(example, userA.financeContract)).to.equal(hash);
   });
 
   it('does not validate campaign parameters with invalid contributionValidatorTarget', async () => {
@@ -61,13 +61,13 @@ describe('Flair', () => {
     };
 
     expect(
-      await userA.flairContract.validateCampaignParameters(
+      await userA.financeContract.validateCampaignParameters(
         ...prepareCampaignArgs(example)
       )
     ).to.equal(false);
   });
 
-  it('validates valid authorization by signature (sign_typed_data)', async () => {
+  it('validates valid authorization by signatureHex (sign_typed_data)', async () => {
     const { userA } = await setupTest();
 
     const example = {
@@ -75,7 +75,7 @@ describe('Flair', () => {
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
       creator: userA.signer.address.toLowerCase(),
-      contributionValidatorTarget: userA.flairContract.address.toLowerCase(),
+      contributionValidatorTarget: userA.financeContract.address.toLowerCase(),
       contributionValidatorSelector: '0x00000000',
       contributionValidatorExtradata: '0x',
       cancellationValidatorTarget: ZERO_ADDRESS,
@@ -89,12 +89,12 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
-    const hash = hashCampaign(example, userA.flairContract);
+    const hash = hashCampaign(example, userA.financeContract);
 
     expect(
-      await userA.flairContract.validateCampaignAuthorization(
+      await userA.financeContract.validateCampaignAuthorization(
         hash,
         userA.signer.address.toLowerCase(),
         signature
@@ -110,7 +110,7 @@ describe('Flair', () => {
       fundingOptions: generateFundingOptions({}),
       registry: userA.registryContract.address.toLowerCase(),
       creator: userA.signer.address.toLowerCase(),
-      contributionValidatorTarget: userA.flairContract.address.toLowerCase(),
+      contributionValidatorTarget: userA.financeContract.address.toLowerCase(),
       contributionValidatorSelector: '0x00000000',
       contributionValidatorExtradata: '0x',
       cancellationValidatorTarget: ZERO_ADDRESS,
@@ -121,21 +121,21 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = hashCampaign(example, userA.flairContract);
+    const hash = hashCampaign(example, userA.financeContract);
 
-    const resultOne = await userA.flairContract.getCampaignFundingCost(
+    const resultOne = await userA.financeContract.getCampaignFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
       1
     );
-    const resultTwo = await userA.flairContract.getCampaignFundingCost(
+    const resultTwo = await userA.financeContract.getCampaignFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
       2
     );
-    const resultFive = await userA.flairContract.getCampaignFundingCost(
+    const resultFive = await userA.financeContract.getCampaignFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
@@ -196,28 +196,28 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = await hashCampaign(example, userA.flairContract);
+    const hash = await hashCampaign(example, userA.financeContract);
 
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
     await expect(
-      userB.flairContract.fundCampaign(
+      userB.financeContract.fundCampaign(
         ...prepareCampaignArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
         {
-          value: web3.utils.toWei('1.05'),
+          value: web3.utils.toWei('1.01'),
         }
       )
     )
-      .to.emit(userA.flairContract, 'CampaignFunded')
+      .to.emit(userA.financeContract, 'CampaignFunded')
       .withArgs(hash, userA.signer.address, userB.signer.address, 1, 1);
   });
 
@@ -265,24 +265,22 @@ describe('Flair', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = await hashCampaign(example, userA.flairContract);
-
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
     await expect(
-      userB.flairContract.fundCampaign(
+      userB.financeContract.fundCampaign(
         ...prepareCampaignArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
         {
-          value: web3.utils.toWei('1.05'),
+          value: web3.utils.toWei('1.01'),
         }
       )
     ).to.emit(userA.fundingContract, 'ContributionRegistered');
@@ -334,18 +332,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userB.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -402,24 +400,24 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
     await expect(
-      await userB.flairContract.fundCampaign(
+      await userB.financeContract.fundCampaign(
         ...prepareCampaignArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
         {
-          value: web3.utils.toWei('1.05'),
+          value: web3.utils.toWei('1.01'),
         }
       )
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -427,10 +425,10 @@ describe('Flair', () => {
       ],
       [
         web3.utils.toWei('0'),
-        web3.utils.toWei('0.05'),
+        web3.utils.toWei('0.01'),
         web3.utils.toWei('1'),
         web3.utils.toWei('0'),
-        web3.utils.toWei('-1.05'),
+        web3.utils.toWei('-1.01'),
       ]
     );
   });
@@ -485,18 +483,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -561,18 +559,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -582,7 +580,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -653,18 +651,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -674,7 +672,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -745,18 +743,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -767,7 +765,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -839,18 +837,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -860,7 +858,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -932,18 +930,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -953,7 +951,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -1025,18 +1023,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -1046,7 +1044,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -1118,18 +1116,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -1139,7 +1137,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -1233,18 +1231,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: fundingTargetSelector + fundingTargetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -1256,14 +1254,14 @@ describe('Flair', () => {
 
     const contributionId =
       (await userB.fundingContract.totalContributionsByHash(
-        hashCampaign(example, userB.flairContract)
+        hashCampaign(example, userB.financeContract)
       )) - 1;
 
     // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
     await increaseTime(99);
 
     await expect(
-      await userB.flairContract.cancelFunding(
+      await userB.financeContract.cancelFunding(
         ...prepareCampaignArgs(
           example,
           signature,
@@ -1276,7 +1274,7 @@ describe('Flair', () => {
       )
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,
@@ -1343,18 +1341,18 @@ describe('Flair', () => {
     const signature = await signCampaign(
       example,
       userA.signer,
-      userA.flairContract
+      userA.financeContract
     );
 
     await userA.registryContract.registerProxy();
 
-    await userB.flairContract.fundCampaign(
+    await userB.financeContract.fundCampaign(
       ...prepareCampaignArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
       {
-        value: web3.utils.toWei('1.05'),
+        value: web3.utils.toWei('1.01'),
       }
     );
 
@@ -1364,7 +1362,7 @@ describe('Flair', () => {
       await userA.fundingContract.releaseAllToBeneficiary()
     ).to.changeEtherBalances(
       [
-        userA.flairContract,
+        userA.financeContract,
         userA.treasuryContract,
         userA.fundingContract,
         userA.signer,

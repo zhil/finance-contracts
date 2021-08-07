@@ -9,7 +9,7 @@ import "./lib/proxy/AuthenticatedProxy.sol";
 import "hardhat/console.sol";
 
 contract StaticValidators {
-    string public constant name = "Flair.Finance Static Validators";
+    string public constant name = "Flair Static Validators";
 
     constructor() public {}
 
@@ -91,7 +91,7 @@ contract StaticValidators {
         AuthenticatedProxy.HowToCall howToCall,
         uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
         bytes memory data
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         (address requiredTarget, bytes4 requiredSelector, uint32 campaignedAmount) =
             abi.decode(extraData, (address, bytes4, uint32));
 
@@ -158,7 +158,7 @@ contract StaticValidators {
         AuthenticatedProxy.HowToCall howToCall,
         uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
         bytes memory data
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         // Decode extradata
         (address token) = abi.decode(extraData, (address));
 

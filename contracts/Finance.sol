@@ -10,11 +10,11 @@ import "./Campaigns.sol";
 
 import "hardhat/console.sol";
 
-contract Flair is Campaigns, BancorFormula, AccessControlUpgradeable {
+contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
 
-    string public constant name = "Flair.Finance";
+    string public constant name = "Flair Finance";
 
     string public constant version = "0.1";
 
@@ -88,6 +88,17 @@ contract Flair is Campaigns, BancorFormula, AccessControlUpgradeable {
     }
 
     /* PUBLIC */
+
+    function getParameters()
+    public
+    view
+    virtual
+    returns (
+        uint256 protocolFee
+    )
+    {
+        return (_protocolFee);
+    }
 
     function hashCampaign(
         uint256[8] calldata fundingOptions,

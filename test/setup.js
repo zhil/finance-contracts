@@ -22,7 +22,7 @@ const setupTest = deployments.createFixture(
     return {
       governor: {
         signer: await ethers.getSigner(governor),
-        flairContract: await ethers.getContract('Flair', governor),
+        financeContract: await ethers.getContract('Finance', governor),
         tokenContract: await ethers.getContract('Token', governor),
         treasuryContract: await ethers.getContract('Treasury', governor),
         registryContract: await ethers.getContract('Registry', governor),
@@ -35,7 +35,7 @@ const setupTest = deployments.createFixture(
       },
       userA: {
         signer: await ethers.getSigner(accounts[0]),
-        flairContract: await ethers.getContract('Flair', accounts[0]),
+        financeContract: await ethers.getContract('Finance', accounts[0]),
         tokenContract: await ethers.getContract('Token', accounts[0]),
         treasuryContract: await ethers.getContract('Treasury', accounts[0]),
         registryContract: await ethers.getContract('Registry', accounts[0]),
@@ -48,7 +48,7 @@ const setupTest = deployments.createFixture(
       },
       userB: {
         signer: await ethers.getSigner(accounts[1]),
-        flairContract: await ethers.getContract('Flair', accounts[1]),
+        financeContract: await ethers.getContract('Finance', accounts[1]),
         tokenContract: await ethers.getContract('Token', accounts[1]),
         treasuryContract: await ethers.getContract('Treasury', accounts[1]),
         registryContract: await ethers.getContract('Registry', accounts[1]),
@@ -61,7 +61,7 @@ const setupTest = deployments.createFixture(
       },
       userC: {
         signer: await ethers.getSigner(accounts[2]),
-        flairContract: await ethers.getContract('Flair', accounts[2]),
+        financeContract: await ethers.getContract('Finance', accounts[2]),
         tokenContract: await ethers.getContract('Token', accounts[2]),
         treasuryContract: await ethers.getContract('Treasury', accounts[2]),
         registryContract: await ethers.getContract('Registry', accounts[2]),
@@ -74,7 +74,7 @@ const setupTest = deployments.createFixture(
       },
       userD: {
         signer: await ethers.getSigner(accounts[3]),
-        flairContract: await ethers.getContract('Flair', accounts[3]),
+        financeContract: await ethers.getContract('Finance', accounts[3]),
         tokenContract: await ethers.getContract('Token', accounts[3]),
         treasuryContract: await ethers.getContract('Treasury', accounts[3]),
         registryContract: await ethers.getContract('Registry', accounts[3]),
@@ -87,7 +87,7 @@ const setupTest = deployments.createFixture(
       },
       userE: {
         signer: await ethers.getSigner(accounts[4]),
-        flairContract: await ethers.getContract('Flair', accounts[4]),
+        financeContract: await ethers.getContract('Finance', accounts[4]),
         tokenContract: await ethers.getContract('Token', accounts[4]),
         treasuryContract: await ethers.getContract('Treasury', accounts[4]),
         registryContract: await ethers.getContract('Registry', accounts[4]),

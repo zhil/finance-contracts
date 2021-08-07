@@ -1,6 +1,4 @@
-const web3 = require('web3');
-
-const { deployUpgradableContract, deployPermanentContract } = require('../hardhat.util');
+const { deployUpgradableContract } = require('../hardhat.util');
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer, governor } = await getNamedAccounts();
@@ -13,17 +11,17 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     [registry.address],
     treasury.address,
     funding.address,
-    500, // protocolFee: 5%
+    100, // protocolFee: 1%
   ];
 
   await deployUpgradableContract(
     deployments,
     deployer,
     governor,
-    'Flair',
+    'Finance',
     contractArguments
   );
 };
 
-module.exports.tags = ['Flair'];
+module.exports.tags = ['Finance'];
 module.exports.dependencies = ['Token', 'Treasury', 'Funding'];

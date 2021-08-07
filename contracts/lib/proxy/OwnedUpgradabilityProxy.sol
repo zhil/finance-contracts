@@ -86,7 +86,7 @@ contract OwnedUpgradeabilityProxy is Proxy, OwnedUpgradeabilityStorage {
      * and delegatecall the new implementation for initialization.
      * @param implementation representing the address of the new implementation to be set.
      * @param data represents the msg.data to bet sent in the low level call. This parameter may include the function
-     * signature of the implementation to be called with the needed payload
+     * signatureHex of the implementation to be called with the needed payload
      */
     function upgradeToAndCall(address implementation, bytes memory data) public payable onlyProxyOwner {
         upgradeTo(implementation);

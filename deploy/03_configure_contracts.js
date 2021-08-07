@@ -3,7 +3,7 @@ const web3 = require('web3');
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer } = await getNamedAccounts();
 
-  const flair = await deployments.get('Flair');
+  const finance = await deployments.get('Finance');
   const funding = await deployments.get('Funding');
 
   try {
@@ -11,7 +11,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
       'Registry',
       { from: deployer },
       'grantInitialAuthentication',
-      flair.address
+      finance.address
     );
   } catch (e) {
     console.warn('Could not grantInitialAuthentication! Perhaps already done?');
@@ -30,7 +30,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     { from: deployer },
     'grantRole',
     web3.utils.soliditySha3('ORCHESTRATOR_ROLE'),
-    flair.address
+    finance.address
   );
 };
 

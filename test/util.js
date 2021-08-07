@@ -37,25 +37,25 @@ const increaseTime = async (seconds) => {
   return ethers.provider.send('evm_increaseTime', [seconds]);
 };
 
-const getEIP712Data = (campaign, flairContract) => {
+const getEIP712Data = (campaign, financeContract) => {
   return {
     types: {
       EIP712Domain: EIP712_DOMAIN.fields,
       Campaign: EIP712_CAMPAIGN.fields,
     },
     domain: {
-      name: 'Flair.Finance',
+      name: 'Flair Finance',
       version: '0.1',
       chainId: 31337,
-      verifyingContract: flairContract.address.toLowerCase(),
+      verifyingContract: financeContract.address.toLowerCase(),
     },
     primaryType: 'Campaign',
     message: campaign,
   };
 };
 
-const hashCampaign = (campaign, flairContract) => {
-  const data = getEIP712Data(campaign, flairContract);
+const hashCampaign = (campaign, financeContract) => {
+  const data = getEIP712Data(campaign, financeContract);
   return `0x${sigUtils.TypedDataUtils.hashStruct(
     data.primaryType,
     campaign,
@@ -63,14 +63,14 @@ const hashCampaign = (campaign, flairContract) => {
   ).toString('hex')}`;
 };
 
-const hashToSign = (campaign, flairContract) => {
+const hashToSign = (campaign, financeContract) => {
   return `0x${sigUtils.TypedDataUtils.sign(
-    getEIP712Data(campaign, flairContract)
+    getEIP712Data(campaign, financeContract)
   ).toString('hex')}`;
 };
 
-const signCampaign = async (campaign, account, flairContract) => {
-  const data = getEIP712Data(campaign, flairContract);
+const signCampaign = async (campaign, account, financeContract) => {
+  const data = getEIP712Data(campaign, financeContract);
 
   const signature = await account.provider.send('eth_signTypedData_v4', [
     account.address.toLowerCase(),

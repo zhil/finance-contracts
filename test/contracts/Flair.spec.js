@@ -1245,6 +1245,7 @@ describe('Flair', () => {
         hashOffer(example, userB.flairContract)
       )) - 1;
 
+    // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
     await increaseTime(99);
 
     await expect(

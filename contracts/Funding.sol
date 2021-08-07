@@ -31,6 +31,7 @@ contract Funding is
         address investor;
         bytes32 offerHash;
         uint256 amount;
+        uint256 filled;
         uint256 registeredAt;
         uint256 canceledAt;
     }
@@ -207,7 +208,7 @@ contract Funding is
             optionsByHash[offerHash] = fundingOptions;
         }
 
-        contributions.push(Contribution(investor, offerHash, amount, block.timestamp, 0));
+        contributions.push(Contribution(investor, offerHash, amount, filled, block.timestamp, 0));
         uint256 contributionId = contributions.length - 1;
 
         contributionsByHash[offerHash].push(contributionId);
@@ -234,6 +235,7 @@ contract Funding is
         );
         require(contributions[contributionId].canceledAt == 0, "FUNDING/ALREADY_CANCELED");
         require(contributions[contributionId].investor == investor, "FUNDING/NOT_INVESTOR");
+        require(contributions[contributionId].filled == unfilled, "FUNDING/FILL_MISMATCH");
 
         uint256 toBeReleased = _calculateReleasedAmountUntil(contributions[contributionId], block.timestamp, offerHash);
 

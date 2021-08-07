@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/utils/Arrays.sol";
 import "./lib/ArrayUtils.sol";
 import "./lib/proxy/AuthenticatedProxy.sol";
 
+import "hardhat/console.sol";
+
 contract StaticValidators {
     string public constant name = "Flair.Finance Static Validators";
 
@@ -89,7 +91,7 @@ contract StaticValidators {
         AuthenticatedProxy.HowToCall howToCall,
         uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
-    ) public pure returns (uint256) {
+    ) public view returns (uint256) {
         (address requiredTarget, bytes4 requiredSelector, uint32 offeredAmount) =
             abi.decode(extraData, (address, bytes4, uint32));
 
@@ -150,6 +152,49 @@ contract StaticValidators {
         return 1;
     }
 
+    function acceptReturnERC721Any(
+        bytes memory extraData,
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.maker, offer.target, taker
+        AuthenticatedProxy.HowToCall howToCall,
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
+        bytes memory data
+    ) public view returns (uint256) {
+        // Decode extradata
+        (address token) = abi.decode(extraData, (address));
+
+        require(
+            uints[4] > 0, /* currentFill */
+            "STATIC_VALIDATOR/NOT_FILLED"
+        );
+
+        // Call target == ERC-721 token to give
+        require(
+            addresses[3] == token /* offer.target */
+        );
+
+        // Call type = call
+        require(howToCall == AuthenticatedProxy.HowToCall.Call);
+
+        // Assert calldata
+
+        uint256 tokenId = getERC721TokenIdFromCalldata(data);
+        require(tokenId > 0, "STATIC_VALIDATOR/INVALID_TOKEN_ID");
+
+        require(
+            ArrayUtils.arrayEq(
+                data,
+                abi.encodeWithSignature(
+                    "transferFrom(address,address,uint256)",
+                    addresses[4], /* taker */
+                    addresses[2], /* maker */
+                    tokenId
+                )
+            )
+        );
+
+        return 0;
+    }
+
     function acceptTransferERC1155AnyAmount(
         bytes memory extraData,
         address[5] memory addresses, // offer.beneficiary, offer.registry, offer.maker, offer.target, taker
@@ -201,8 +246,11 @@ contract StaticValidators {
         return newFill;
     }
 
-    function getERC1155AmountFromCalldata(bytes memory data) internal pure returns (uint256) {
-        uint256 amount = abi.decode(ArrayUtils.slice(data, 100, 32), (uint256));
-        return amount;
+    function getERC1155AmountFromCalldata(bytes memory data) internal pure returns (uint256 amount) {
+        amount = abi.decode(ArrayUtils.slice(data, 100, 32), (uint256));
+    }
+
+    function getERC721TokenIdFromCalldata(bytes memory data) internal pure returns (uint256 tokenId) {
+        tokenId = abi.decode(ArrayUtils.slice(data, 68, 32), (uint256));
     }
 }

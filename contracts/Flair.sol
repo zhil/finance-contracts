@@ -92,35 +92,29 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     function hashOffer(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
-        uint256[4] calldata uints,
+        uint256[3] calldata uints,
         bytes4[2] memory validatorSelectors,
         bytes calldata fundingValidatorExtradata,
-        bytes calldata cancellationValidatorExtradata,
-        uint256 maximumFill,
-        uint256 listingTime,
-        uint256 expirationTime,
-        uint256 salt
+        bytes calldata cancellationValidatorExtradata
     ) external pure returns (bytes32 hash) {
-        return bytes32(0);
-        //        return
-        //            _hashOffer(
-        //                Offer(
-        //                    addrs[0],                 // beneficiary
-        //                    fundingOptions,
-        //                    addrs[1],                 // registry
-        //                    addrs[2],                 // maker
-        //                    addrs[3],                 // fundingValidatorTarget
-        //                    validatorSelectors[0],    // fundingValidatorSelector
-        //                    fundingValidatorExtradata,
-        //                    addrs[4],                 // cancellationValidatorTarget
-        //                    validatorSelectors[1],    // cancellationValidatorSelector
-        //                    cancellationValidatorExtradata,
-        //                    uints[0],                 // maximumFill
-        //                    uints[1],                 // listingTime
-        //                    uints[2],                 // expirationTime
-        //                    uints[3]                  // salt
-        //                )
-        //            );
+        return
+            _hashOffer(
+                Offer(
+                    addrs[0], // beneficiary
+                    fundingOptions,
+                    addrs[1], // registry
+                    addrs[2], // maker
+                    addrs[3], // fundingValidatorTarget
+                    validatorSelectors[0], // fundingValidatorSelector
+                    fundingValidatorExtradata,
+                    addrs[4], // cancellationValidatorTarget
+                    validatorSelectors[1], // cancellationValidatorSelector
+                    cancellationValidatorExtradata,
+                    uints[0], // maximumFill
+                    uints[1], // listingTime
+                    uints[2]  // expirationTime
+                )
+            );
     }
 
     function hashToSign(bytes32 orderHash) external view returns (bytes32 hash) {
@@ -130,34 +124,28 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     function validateOfferParameters(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
-        uint256[4] calldata uints,
+        uint256[3] calldata uints,
         bytes4[2] memory validatorSelectors,
         bytes calldata fundingValidatorExtradata,
-        bytes calldata cancellationValidatorExtradata,
-        uint256 maximumFill,
-        uint256 listingTime,
-        uint256 expirationTime,
-        uint256 salt
+        bytes calldata cancellationValidatorExtradata
     ) external view returns (bool) {
-        return false;
-        //        Offer memory offer =
-        //            Offer(
-        //                addrs[0],                 // beneficiary
-        //                fundingOptions,
-        //                addrs[1],                 // registry
-        //                addrs[2],                 // maker
-        //                addrs[3],                 // fundingValidatorTarget
-        //                validatorSelectors[0],    // fundingValidatorSelector
-        //                fundingValidatorExtradata,
-        //                addrs[4],                 // cancellationValidatorTarget
-        //                validatorSelectors[1],    // cancellationValidatorSelector
-        //                cancellationValidatorExtradata,
-        //                uints[0],                 // maximumFill
-        //                uints[1],                 // listingTime
-        //                uints[2],                 // expirationTime
-        //                uints[3]                  // salt
-        //            );
-        //        return _validateOfferParameters(offer, _hashOffer(offer));
+        Offer memory offer =
+            Offer(
+                addrs[0], // beneficiary
+                fundingOptions,
+                addrs[1], // registry
+                addrs[2], // maker
+                addrs[3], // fundingValidatorTarget
+                validatorSelectors[0], // fundingValidatorSelector
+                fundingValidatorExtradata,
+                addrs[4], // cancellationValidatorTarget
+                validatorSelectors[1], // cancellationValidatorSelector
+                cancellationValidatorExtradata,
+                uints[0], // maximumFill
+                uints[1], // listingTime
+                uints[2]  // expirationTime
+            );
+        return _validateOfferFundingParameters(offer, _hashOffer(offer));
     }
 
     function validateOfferAuthorization(
@@ -175,34 +163,29 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     function approveOffer(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
-        uint256[4] calldata uints,
+        uint256[3] calldata uints,
         bytes4[2] memory validatorSelectors,
         bytes calldata fundingValidatorExtradata,
-        bytes calldata cancellationValidatorExtradata,
-        uint256 maximumFill,
-        uint256 listingTime,
-        uint256 expirationTime,
-        uint256 salt
+        bytes calldata cancellationValidatorExtradata
     ) external {
-        //        return
-        //            _approveOffer(
-        //                Offer(
-        //                    addrs[0],                 // beneficiary
-        //                    fundingOptions,
-        //                    addrs[1],                 // registry
-        //                    addrs[2],                 // maker
-        //                    addrs[3],                 // fundingValidatorTarget
-        //                    validatorSelectors[0],    // fundingValidatorSelector
-        //                    fundingValidatorExtradata,
-        //                    addrs[4],                 // cancellationValidatorTarget
-        //                    validatorSelectors[1],    // cancellationValidatorSelector
-        //                    cancellationValidatorExtradata,
-        //                    uints[0],                 // maximumFill
-        //                    uints[1],                 // listingTime
-        //                    uints[2],                 // expirationTime
-        //                    uints[3]                  // salt
-        //                )
-        //            );
+        return
+            _approveOffer(
+                Offer(
+                    addrs[0], // beneficiary
+                    fundingOptions,
+                    addrs[1], // registry
+                    addrs[2], // maker
+                    addrs[3], // fundingValidatorTarget
+                    validatorSelectors[0], // fundingValidatorSelector
+                    fundingValidatorExtradata,
+                    addrs[4], // cancellationValidatorTarget
+                    validatorSelectors[1], // cancellationValidatorSelector
+                    cancellationValidatorExtradata,
+                    uints[0], // maximumFill
+                    uints[1], // listingTime
+                    uints[2]  // expirationTime
+                )
+            );
     }
 
     function setOfferFill(bytes32 hash, uint256 fill) external {
@@ -212,7 +195,7 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     function fundOffer(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
-        uint256[4] calldata uints,
+        uint256[3] calldata uints,
         bytes4[2] memory validatorSelectors,
         bytes calldata fundingValidatorExtradata,
         bytes calldata cancellationValidatorExtradata,
@@ -220,11 +203,8 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         AuthenticatedProxy.HowToCall howToCall,
         bytes calldata data
     ) public payable {
-        Offer memory offer;
-        Call memory call;
-
-        {
-            offer = Offer(
+        _fundOffer(
+            Offer(
                 addrs[0], // beneficiary
                 fundingOptions,
                 addrs[1], // registry
@@ -237,23 +217,52 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
                 cancellationValidatorExtradata,
                 uints[0], // maximumFill
                 uints[1], // listingTime
-                uints[2], // expirationTime
-                uints[3] // salt
-            );
-        }
+                uints[2]  // expirationTime
+            ),
+            Call(
+                addrs[5], // target
+                howToCall,
+                data
+            ),
+            signature
+        );
+    }
 
-        {
-            call =
-                Call(
-                    addrs[5], // target
-                    howToCall,
-                    data
-                );
-        }
-
-        {
-            _fundOffer(offer, call, signature);
-        }
+    function cancelFunding(
+        uint256[8] calldata fundingOptions,
+        address[6] calldata addrs,
+        uint256[4] calldata uints,
+        bytes4[2] memory validatorSelectors,
+        bytes calldata fundingValidatorExtradata,
+        bytes calldata cancellationValidatorExtradata,
+        bytes memory signature,
+        AuthenticatedProxy.HowToCall howToCall,
+        bytes calldata data
+    ) public {
+        _cancelFunding(
+            Offer(
+                addrs[0], // beneficiary
+                fundingOptions,
+                addrs[1], // registry
+                addrs[2], // maker
+                addrs[3], // fundingValidatorTarget
+                validatorSelectors[0], // fundingValidatorSelector
+                fundingValidatorExtradata,
+                addrs[4], // cancellationValidatorTarget
+                validatorSelectors[1], // cancellationValidatorSelector
+                cancellationValidatorExtradata,
+                uints[0], // maximumFill
+                uints[1], // listingTime
+                uints[2]  // expirationTime
+            ),
+            Call(
+                addrs[5], // target
+                howToCall,
+                data
+            ),
+            signature,
+            uints[3] // contributionId
+        );
     }
 
     function getOfferFundingCost(
@@ -323,12 +332,12 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
     }
 
     function _cancelFunding(
-        address taker,
         Offer memory offer,
         Call memory call,
         bytes memory signature,
         uint256 contributionId
     ) internal {
+        address taker = _msgSender();
         (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeOfferCancellation(offer, call, signature);
 
         require(previousFill >= newFill, "FLAIR_FINANCE/NOT_UNFILLED");
@@ -338,7 +347,7 @@ contract Flair is Offers, BancorFormula, AccessControlUpgradeable {
         (bool success, ) =
             _funding.call(
                 abi.encodeWithSignature(
-                    "refundContribution(address,uint256,bytes32,uint256,address,uint256)",
+                    "refundContribution(address,bytes32,address,uint256,uint256)",
                     offer.beneficiary,
                     hash,
                     taker,

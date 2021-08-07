@@ -30,7 +30,6 @@ const EIP712_OFFER = {
     { name: 'maximumFill', type: 'uint256' },
     { name: 'listingTime', type: 'uint256' },
     { name: 'expirationTime', type: 'uint256' },
-    { name: 'salt', type: 'uint256' },
   ],
 };
 
@@ -112,29 +111,30 @@ const generateFundingOptions = ({
   ];
 };
 
-function prepareOfferArgs(offer, signature, call = {}) {
+function prepareOfferArgs(offer, signature, call = {}, extraInts = []) {
   const addrs = [
     offer.beneficiary,
     offer.registry,
     offer.maker,
     offer.fundingValidatorTarget,
     offer.cancellationValidatorTarget,
-    call.target,
+    call.target || ZERO_ADDRESS,
   ];
 
   const ints = [
     offer.maximumFill,
     offer.listingTime,
     offer.expirationTime,
-    offer.salt,
+    ...extraInts,
   ];
 
   const args = [
     offer.fundingOptions,
     addrs,
     ints,
-    offer.fundingValidatorSelector,
+    [offer.fundingValidatorSelector, offer.cancellationValidatorSelector],
     offer.fundingValidatorExtradata,
+    offer.cancellationValidatorExtradata,
   ];
 
   if (signature && call) {

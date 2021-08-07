@@ -151,8 +151,7 @@ contract Funding is
         uint256 vestingPeriod = options[3];
         uint256 vestingTotalAmount = contribution.amount - upfrontPayment - cliffPayment;
 
-        uint256 startOfVesting =
-            (contribution.registeredAt + options[1]); /* cliffPeriod */
+        uint256 startOfVesting = (contribution.registeredAt + options[1]); /* cliffPeriod */
         uint256 vestedDuration = startOfVesting > effectiveCheckpoint ? 0 : effectiveCheckpoint - startOfVesting;
         if (vestedDuration > vestingPeriod) {
             vestedDuration = vestingPeriod;
@@ -186,6 +185,10 @@ contract Funding is
 
     /* PUBLIC */
 
+    function totalContributionsByHash(bytes32 offerHash) public view returns (uint256) {
+        return contributionsByHash[offerHash].length;
+    }
+
     function registerContribution(
         address beneficiary,
         bytes32 offerHash,
@@ -204,9 +207,8 @@ contract Funding is
             optionsByHash[offerHash] = fundingOptions;
         }
 
-        uint256 contributionId = contributions.length + 1;
-
-        contributions[contributionId] = Contribution(investor, offerHash, amount, block.timestamp, 0);
+        contributions.push(Contribution(investor, offerHash, amount, block.timestamp, 0));
+        uint256 contributionId = contributions.length - 1;
 
         contributionsByHash[offerHash].push(contributionId);
         filledTotalByBeneficiaryAndHash[beneficiary][offerHash] += filled;
@@ -224,6 +226,7 @@ contract Funding is
     ) public payable virtual nonReentrant {
         /* CHECKS */
         require(hasRole(ORCHESTRATOR_ROLE, _msgSender()), "FUNDING/NOT_ORCHESTRATOR");
+        require(contributions[contributionId].registeredAt > 0, "FUNDING/INVALID_CONTRIBUTION");
 
         require(
             unfilled > 0 && filledTotalByBeneficiaryAndHash[beneficiary][offerHash] >= unfilled,
@@ -277,7 +280,10 @@ contract Funding is
         _reward(beneficiary, totalToBeReleased);
     }
 
-    function _prepareReleaseToBeneficiaryByHash(address beneficiary, bytes32 hash) internal returns (uint256 toBeReleased) {
+    function _prepareReleaseToBeneficiaryByHash(address beneficiary, bytes32 hash)
+        internal
+        returns (uint256 toBeReleased)
+    {
         uint256 now = block.timestamp;
         uint256 lastRelease = releasedTimes[beneficiary][hash];
 

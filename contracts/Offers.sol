@@ -53,8 +53,6 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         uint256 listingTime;
         /* Offer expiration timestamp - 0 for no expiry. */
         uint256 expirationTime;
-        /* Offer salt to prevent duplicate hashes. */
-        uint256 salt;
     }
 
     /* A call, convenience struct. */
@@ -72,7 +70,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
     /* Order typehash for EIP 712 compatibility. */
     bytes32 constant OFFER_TYPEHASH =
         keccak256(
-            "Offer(address beneficiary,uint256[8] fundingOptions,address registry,address maker,address fundingValidatorTarget,bytes4 fundingValidatorSelector,bytes fundingValidatorExtradata,address cancellationValidatorTarget,bytes4 cancellationValidatorSelector,bytes cancellationValidatorExtradata,uint256 maximumFill,uint256 listingTime,uint256 expirationTime,uint256 salt)"
+            "Offer(address beneficiary,uint256[8] fundingOptions,address registry,address maker,address fundingValidatorTarget,bytes4 fundingValidatorSelector,bytes fundingValidatorExtradata,address cancellationValidatorTarget,bytes4 cancellationValidatorSelector,bytes cancellationValidatorExtradata,uint256 maximumFill,uint256 listingTime,uint256 expirationTime)"
         );
 
     /* VARIABLES */
@@ -102,8 +100,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         bytes cancellationValidatorExtradata,
         uint256 maximumFill,
         uint256 listingTime,
-        uint256 expirationTime,
-        uint256 salt
+        uint256 expirationTime
     );
     event OfferFillChanged(bytes32 indexed hash, address indexed maker, uint256 newFill);
 
@@ -135,8 +132,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
                     keccak256(offer.cancellationValidatorExtradata),
                     offer.maximumFill,
                     offer.listingTime,
-                    offer.expirationTime,
-                    offer.salt
+                    offer.expirationTime
                 )
             );
     }
@@ -154,7 +150,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         return size > 0;
     }
 
-    function _validateOfferParameters(Offer memory offer, bytes32 hash) internal view returns (bool) {
+    function _validateOfferFundingParameters(Offer memory offer, bytes32 hash) internal view returns (bool) {
         /* Offer must be listed and not be expired. */
         if (
             offer.listingTime > block.timestamp ||
@@ -170,6 +166,27 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
         /* Offer static target must exist. */
         if (!_exists(offer.fundingValidatorTarget)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function _validateOfferCancellationParameters(Offer memory offer, bytes32 hash) internal view returns (bool) {
+        /* Offer must be listed and not be expired. */
+        if (
+            offer.listingTime > block.timestamp
+        ) {
+            return false;
+        }
+
+        /* Offer must have already been filled. */
+        if (fills[offer.maker][hash] < 1) {
+            return false;
+        }
+
+        /* Offer cancellation validator static target must exist. */
+        if (!_exists(offer.cancellationValidatorTarget)) {
             return false;
         }
 
@@ -360,8 +377,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
             offer.cancellationValidatorExtradata,
             offer.maximumFill,
             offer.listingTime,
-            offer.expirationTime,
-            offer.salt
+            offer.expirationTime
         );
     }
 
@@ -399,15 +415,15 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         hash = _hashOffer(offer);
 
         /* Check offer validity. */
-        require(_validateOfferParameters(offer, hash), "OFFERS/INVALID");
+        require(_validateOfferFundingParameters(offer, hash), "OFFERS/FUNDING_INVALID");
 
         /* Check offer authorization. */
-        require(_validateOfferAuthorization(hash, offer.maker, signature), "OFFERS/UNAUTHORIZED");
+        require(_validateOfferAuthorization(hash, offer.maker, signature), "OFFERS/FUNDING_UNAUTHORIZED");
 
         /* INTERACTIONS */
 
         /* Execute call, assert success. */
-        require(_executeCall(ProxyRegistryInterface(offer.registry), offer.maker, call), "OFFERS/FAILED");
+        require(_executeCall(ProxyRegistryInterface(offer.registry), offer.maker, call), "OFFERS/FUNDING_FAILED");
 
         /* Fetch previous offer fill. */
         previousFill = fills[offer.maker][hash];
@@ -417,10 +433,9 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
         /* EFFECTS */
 
-        /* Update offer fill, if necessary. */
-        if (newFill != previousFill) {
-            fills[offer.maker][hash] = newFill;
-        }
+        /* Update offer fill. */
+        require(newFill != previousFill, "OFFERS/FILL_UNCHANGED");
+        fills[offer.maker][hash] = newFill;
 
         return (hash, previousFill, newFill);
     }
@@ -444,15 +459,15 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         hash = _hashOffer(offer);
 
         /* Check offer validity. */
-        require(_validateOfferParameters(offer, hash), "OFFERS/INVALID");
+        require(_validateOfferCancellationParameters(offer, hash), "OFFERS/CANCELLATION_INVALID");
 
         /* Check offer authorization. */
-        require(_validateOfferAuthorization(hash, offer.maker, signature), "OFFERS/UNAUTHORIZED");
+        require(_validateOfferAuthorization(hash, offer.maker, signature), "OFFERS/CANCELLATION_UNAUTHORIZED");
 
         /* INTERACTIONS */
 
         /* Execute call, assert success. */
-        require(_executeCall(ProxyRegistryInterface(offer.registry), offer.maker, call), "OFFERS/FAILED");
+        require(_executeCall(ProxyRegistryInterface(offer.registry), offer.maker, call), "OFFERS/CANCELLATION_FAILED");
 
         /* Fetch previous offer fill. */
         previousFill = fills[offer.maker][hash];
@@ -462,10 +477,9 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
         /* EFFECTS */
 
-        /* Update offer fill, if necessary. */
-        if (newFill != previousFill) {
-            fills[offer.maker][hash] = newFill;
-        }
+        /* Update offer fill. */
+        require(newFill != previousFill, "OFFERS/FILL_UNCHANGED");
+        fills[offer.maker][hash] = newFill;
 
         return (hash, previousFill, newFill);
     }

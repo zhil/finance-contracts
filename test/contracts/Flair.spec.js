@@ -32,7 +32,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '0',
-      salt: '0',
     };
 
     const hash = await userA.flairContract.hashOffer(
@@ -59,12 +58,11 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '0',
-      salt: '0',
     };
 
     expect(
       await userA.flairContract.validateOfferParameters(
-        ...Object.values(example)
+        ...prepareOfferArgs(example)
       )
     ).to.equal(false);
   });
@@ -86,7 +84,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -122,7 +119,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const hash = hashOffer(example, userA.flairContract);
@@ -170,7 +166,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -197,7 +193,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const hash = await hashOffer(example, userA.flairContract);
@@ -225,6 +220,72 @@ describe('Flair', () => {
       .withArgs(hash, userA.signer.address, userB.signer.address, 1, 1);
   });
 
+  it('should successfully fund an offer and emit contribution event', async () => {
+    const { userA, userB } = await setupTest();
+    const nftId = Math.round(Math.random() * 1000000000);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), nftId]
+    );
+
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+    );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const hash = await hashOffer(example, userA.flairContract);
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await expect(
+      userB.flairContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
+          target: userA.testERC721.address.toLowerCase(),
+          data: targetSelector + targetData.substr(2),
+        }),
+        {
+          value: web3.utils.toWei('1.05'),
+        }
+      )
+    ).to.emit(userA.fundingContract, 'ContributionRegistered');
+  });
+
   it('should transfer NFT to funder when successfully funded an offer', async () => {
     const { userA, userB } = await setupTest();
 
@@ -238,7 +299,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -265,7 +326,6 @@ describe('Flair', () => {
       maximumFill: '2',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -306,7 +366,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -333,7 +393,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -386,7 +445,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -416,7 +475,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -462,7 +520,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -492,7 +550,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -553,7 +610,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -584,7 +641,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -645,7 +701,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -676,7 +732,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -737,7 +792,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -769,7 +824,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -830,7 +884,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -862,7 +916,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -923,7 +976,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -955,7 +1008,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -1016,7 +1068,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -1048,7 +1100,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(
@@ -1095,6 +1146,137 @@ describe('Flair', () => {
     );
   });
 
+  it('should refund remainder half vested payment when half vesting period, no upfront payment, no cliff period, no cliff payment', async () => {
+    const { userA, userB } = await setupTest();
+    const nftId = Math.round(Math.random() * 1000000000);
+
+    const fundingTargetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const fundingTargetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), nftId]
+    );
+    const cancellationTargetSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'transferFrom(address,address,uint256)'
+      );
+    const cancellationTargetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256'],
+      [
+        userB.signer.address.toLowerCase(),
+        userA.signer.address.toLowerCase(),
+        nftId,
+      ]
+    );
+
+    const fundingValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'bytes4', 'uint32'],
+      [userA.testERC721.address.toLowerCase(), fundingTargetSelector, 1]
+    );
+
+    const cancellationValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptReturnERC721Any(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const cancellationValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address'],
+        [userA.testERC721.address.toLowerCase()]
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 0, // 0%
+        cliffPeriod: 0,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      maker: userA.signer.address.toLowerCase(),
+      fundingValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      fundingValidatorSelector,
+      fundingValidatorExtradata,
+      cancellationValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      cancellationValidatorSelector,
+      cancellationValidatorExtradata,
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.flairContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.flairContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.testERC721.address.toLowerCase(),
+        data: fundingTargetSelector + fundingTargetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.05'),
+      }
+    );
+
+    // Approve maker's proxy to take back the NFT from taker
+    const makerProxy = await userB.registryContract.proxies(
+      userA.signer.address
+    );
+    await userB.testERC721.setApprovalForAll(makerProxy, true);
+
+    const contributionId =
+      (await userB.fundingContract.totalContributionsByHash(
+        hashOffer(example, userB.flairContract)
+      )) - 1;
+
+    await increaseTime(99);
+
+    await expect(
+      await userB.flairContract.cancelFunding(
+        ...prepareOfferArgs(
+          example,
+          signature,
+          {
+            target: userA.testERC721.address.toLowerCase(),
+            data: cancellationTargetSelector + cancellationTargetData.substr(2),
+          },
+          [contributionId]
+        )
+      )
+    ).to.changeEtherBalances(
+      [
+        userA.flairContract,
+        userA.treasuryContract,
+        userA.fundingContract,
+        userA.signer,
+        userB.signer,
+      ],
+      [
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('-0.5'),
+        web3.utils.toWei('0'),
+        web3.utils.toWei('0.5'),
+      ]
+    );
+  });
+
   it('should successfully withdraw when offer cliff and vesting is fully finished', async () => {
     const { userA, userB } = await setupTest();
 
@@ -1108,7 +1290,7 @@ describe('Flair', () => {
 
     const fundingValidatorSelector =
       web3Instance.eth.abi.encodeFunctionSignature(
-        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[6],uint8,uint256[5],bytes)'
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
       );
     const fundingValidatorExtradata = web3Instance.eth.abi.encodeParameters(
       ['address', 'bytes4', 'uint32'],
@@ -1140,7 +1322,6 @@ describe('Flair', () => {
       maximumFill: '1',
       listingTime: '0',
       expirationTime: '1000000000000',
-      salt: '100230',
     };
 
     const signature = await signOffer(

@@ -21,7 +21,6 @@ jobs:
           INFURA_PROJECT_ID: '9a22fd6b68e941aa91a9df7258be9853'
           GAS_PRICE: '5500000000'
           DEPLOYER_PRIVATE_KEY: '${{ secrets.RINKEBY_DEPLOYER_PRIVATE_KEY }}'
-          UNIQUEDEV_PRIVATE_KEY: '${{ secrets.RINKEBY_DEPLOYER_PRIVATE_KEY }}'
           ETHERSCAN_API_KEY: '${{ secrets.RINKEBY_ETHERSCAN_API_KEY }}'
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:

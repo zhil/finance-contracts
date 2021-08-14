@@ -6,16 +6,16 @@ const { setupTest } = require('../setup');
 const {
   ZERO_ADDRESS,
   generateFundingOptions,
-  hashCampaign,
-  signCampaign,
-  prepareCampaignArgs,
+  hashOffer,
+  signOffer,
+  prepareOfferArgs,
   increaseTime,
 } = require('../util');
 
 describe('Finance', () => {
   const web3Instance = new web3(web3.currentProvider);
 
-  it('should successfully hash an campaign', async () => {
+  it('should successfully hash an offer', async () => {
     const { userA } = await setupTest();
 
     const example = {
@@ -34,14 +34,14 @@ describe('Finance', () => {
       expirationTime: '0',
     };
 
-    const hash = await userA.financeContract.hashCampaign(
-      ...prepareCampaignArgs(example)
+    const hash = await userA.financeContract.hashOffer(
+      ...prepareOfferArgs(example)
     );
 
-    expect(hashCampaign(example, userA.financeContract)).to.equal(hash);
+    expect(hashOffer(example, userA.financeContract)).to.equal(hash);
   });
 
-  it('does not validate campaign parameters with invalid contributionValidatorTarget', async () => {
+  it('does not validate offer parameters with invalid contributionValidatorTarget', async () => {
     const { userA } = await setupTest();
 
     const example = {
@@ -61,8 +61,8 @@ describe('Finance', () => {
     };
 
     expect(
-      await userA.financeContract.validateCampaignParameters(
-        ...prepareCampaignArgs(example)
+      await userA.financeContract.validateOfferParameters(
+        ...prepareOfferArgs(example)
       )
     ).to.equal(false);
   });
@@ -86,15 +86,15 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
     );
-    const hash = hashCampaign(example, userA.financeContract);
+    const hash = hashOffer(example, userA.financeContract);
 
     expect(
-      await userA.financeContract.validateCampaignAuthorization(
+      await userA.financeContract.validateOfferAuthorization(
         hash,
         userA.signer.address.toLowerCase(),
         signature
@@ -121,21 +121,21 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = hashCampaign(example, userA.financeContract);
+    const hash = hashOffer(example, userA.financeContract);
 
-    const resultOne = await userA.financeContract.getCampaignFundingCost(
+    const resultOne = await userA.financeContract.getOfferFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
       1
     );
-    const resultTwo = await userA.financeContract.getCampaignFundingCost(
+    const resultTwo = await userA.financeContract.getOfferFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
       2
     );
-    const resultFive = await userA.financeContract.getCampaignFundingCost(
+    const resultFive = await userA.financeContract.getOfferFundingCost(
       userA.signer.address,
       hash,
       generateFundingOptions({}),
@@ -153,7 +153,7 @@ describe('Finance', () => {
     );
   });
 
-  it('should successfully fund an campaign for 1 ETH fixed-price', async () => {
+  it('should successfully fund an offer for 1 ETH fixed-price', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -196,9 +196,9 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const hash = await hashCampaign(example, userA.financeContract);
+    const hash = await hashOffer(example, userA.financeContract);
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -207,8 +207,8 @@ describe('Finance', () => {
     await userA.registryContract.registerProxy();
 
     await expect(
-      userB.financeContract.fundCampaign(
-        ...prepareCampaignArgs(example, signature, {
+      userB.financeContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
@@ -217,11 +217,11 @@ describe('Finance', () => {
         }
       )
     )
-      .to.emit(userA.financeContract, 'CampaignFunded')
+      .to.emit(userA.financeContract, 'OfferFunded')
       .withArgs(hash, userA.signer.address, userB.signer.address, 1, 1);
   });
 
-  it('should successfully fund an campaign and emit contribution event', async () => {
+  it('should successfully fund an offer and emit contribution event', async () => {
     const { userA, userB } = await setupTest();
     const nftId = Math.round(Math.random() * 1000000000);
 
@@ -265,7 +265,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -274,8 +274,8 @@ describe('Finance', () => {
     await userA.registryContract.registerProxy();
 
     await expect(
-      userB.financeContract.fundCampaign(
-        ...prepareCampaignArgs(example, signature, {
+      userB.financeContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
@@ -286,7 +286,7 @@ describe('Finance', () => {
     ).to.emit(userA.fundingContract, 'ContributionRegistered');
   });
 
-  it('should transfer NFT to funder when successfully funded an campaign', async () => {
+  it('should transfer NFT to funder when successfully funded an offer', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -329,7 +329,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -337,8 +337,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userB.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -354,7 +354,7 @@ describe('Finance', () => {
     ).to.equal(userB.signer.address);
   });
 
-  it('should successfully move the funds to funding contract when campaign is funded', async () => {
+  it('should successfully move the funds to funding contract when offer is funded', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -397,7 +397,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -406,8 +406,8 @@ describe('Finance', () => {
     await userA.registryContract.registerProxy();
 
     await expect(
-      await userB.financeContract.fundCampaign(
-        ...prepareCampaignArgs(example, signature, {
+      await userB.financeContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
           target: userA.testERC721.address.toLowerCase(),
           data: targetSelector + targetData.substr(2),
         }),
@@ -480,7 +480,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -488,8 +488,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -556,7 +556,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -564,8 +564,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -648,7 +648,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -656,8 +656,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -740,7 +740,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -748,8 +748,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -834,7 +834,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -842,8 +842,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -927,7 +927,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -935,8 +935,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -1020,7 +1020,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -1028,8 +1028,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -1113,7 +1113,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -1121,8 +1121,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),
@@ -1228,7 +1228,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -1236,8 +1236,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: fundingTargetSelector + fundingTargetData.substr(2),
       }),
@@ -1254,7 +1254,7 @@ describe('Finance', () => {
 
     const contributionId =
       (await userB.fundingContract.totalContributionsByHash(
-        hashCampaign(example, userB.financeContract)
+        hashOffer(example, userB.financeContract)
       )) - 1;
 
     // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
@@ -1262,7 +1262,7 @@ describe('Finance', () => {
 
     await expect(
       await userB.financeContract.cancelFunding(
-        ...prepareCampaignArgs(
+        ...prepareOfferArgs(
           example,
           signature,
           {
@@ -1290,7 +1290,7 @@ describe('Finance', () => {
     );
   });
 
-  it('should successfully withdraw when campaign cliff and vesting is fully finished', async () => {
+  it('should successfully withdraw when offer cliff and vesting is fully finished', async () => {
     const { userA, userB } = await setupTest();
 
     const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
@@ -1338,7 +1338,7 @@ describe('Finance', () => {
       expirationTime: '1000000000000',
     };
 
-    const signature = await signCampaign(
+    const signature = await signOffer(
       example,
       userA.signer,
       userA.financeContract
@@ -1346,8 +1346,8 @@ describe('Finance', () => {
 
     await userA.registryContract.registerProxy();
 
-    await userB.financeContract.fundCampaign(
-      ...prepareCampaignArgs(example, signature, {
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
         target: userA.testERC721.address.toLowerCase(),
         data: targetSelector + targetData.substr(2),
       }),

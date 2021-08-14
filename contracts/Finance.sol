@@ -6,11 +6,11 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 
 import "./lib/BancorFormula.sol";
 import "./lib/ERC712.sol";
-import "./Campaigns.sol";
+import "./Offers.sol";
 
 import "hardhat/console.sol";
 
-contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
+contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
 
@@ -28,12 +28,12 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
 
     uint256 internal _protocolFee;
 
-    /* Campaign total paid funding costs, by creator address then by hash. */
-    mapping(address => mapping(bytes32 => uint256)) public campaignTotalFunded;
+    /* Offer total paid funding costs, by creator address then by hash. */
+    mapping(address => mapping(bytes32 => uint256)) public offerTotalFunded;
 
     /* EVENTS */
 
-    event CampaignFunded(
+    event OfferFunded(
         bytes32 hash,
         address indexed creator,
         address indexed operator,
@@ -55,7 +55,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         address funding,
         uint256 protocolFee
     ) public initializer {
-        __Campaign_init(name, version);
+        __Offer_init(name, version);
 
         _treasury = treasury;
         _funding = funding;
@@ -100,7 +100,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         return (_protocolFee);
     }
 
-    function hashCampaign(
+    function hashOffer(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
         uint256[3] calldata uints,
@@ -109,8 +109,8 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         bytes calldata cancellationValidatorExtradata
     ) external pure returns (bytes32 hash) {
         return
-            _hashCampaign(
-                Campaign(
+            _hashOffer(
+                Offer(
                     addrs[0], // beneficiary
                     fundingOptions,
                     addrs[1], // registry
@@ -132,7 +132,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         return _hashToSign(orderHash);
     }
 
-    function validateCampaignParameters(
+    function validateOfferParameters(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
         uint256[3] calldata uints,
@@ -140,8 +140,8 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         bytes calldata contributionValidatorExtradata,
         bytes calldata cancellationValidatorExtradata
     ) external view returns (bool) {
-        Campaign memory campaign =
-            Campaign(
+        Offer memory offer =
+            Offer(
                 addrs[0], // beneficiary
                 fundingOptions,
                 addrs[1], // registry
@@ -156,22 +156,22 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
                 uints[1], // listingTime
                 uints[2]  // expirationTime
             );
-        return _validateCampaignFundingParameters(campaign, _hashCampaign(campaign));
+        return _validateOfferFundingParameters(offer, _hashOffer(offer));
     }
 
-    function validateCampaignAuthorization(
+    function validateOfferAuthorization(
         bytes32 hash,
         address creator,
         bytes calldata signature
     ) external view returns (bool) {
-        return _validateCampaignAuthorization(hash, creator, signature);
+        return _validateOfferAuthorization(hash, creator, signature);
     }
 
-    function approveCampaignHash(bytes32 hash) external {
-        return _approveCampaignHash(hash);
+    function approveOfferHash(bytes32 hash) external {
+        return _approveOfferHash(hash);
     }
 
-    function approveCampaign(
+    function approveOffer(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
         uint256[3] calldata uints,
@@ -180,8 +180,8 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         bytes calldata cancellationValidatorExtradata
     ) external {
         return
-            _approveCampaign(
-                Campaign(
+            _approveOffer(
+                Offer(
                     addrs[0], // beneficiary
                     fundingOptions,
                     addrs[1], // registry
@@ -199,11 +199,11 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
             );
     }
 
-    function setCampaignFill(bytes32 hash, uint256 fill) external {
-        return _setCampaignFill(hash, fill);
+    function setOfferFill(bytes32 hash, uint256 fill) external {
+        return _setOfferFill(hash, fill);
     }
 
-    function fundCampaign(
+    function fundOffer(
         uint256[8] calldata fundingOptions,
         address[6] calldata addrs,
         uint256[3] calldata uints,
@@ -214,8 +214,8 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         AuthenticatedProxy.HowToCall howToCall,
         bytes calldata data
     ) public payable {
-        _fundCampaign(
-            Campaign(
+        _fundOffer(
+            Offer(
                 addrs[0], // beneficiary
                 fundingOptions,
                 addrs[1], // registry
@@ -251,7 +251,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         bytes calldata data
     ) public {
         _cancelFunding(
-            Campaign(
+            Offer(
                 addrs[0], // beneficiary
                 fundingOptions,
                 addrs[1], // registry
@@ -276,7 +276,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
         );
     }
 
-    function getCampaignFundingCost(
+    function getOfferFundingCost(
         address creator,
         bytes32 hash,
         uint256[8] calldata fundingOptions,
@@ -284,7 +284,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
     ) public view returns (uint256 fundingCost, uint256 protocolFeeAmount) {
         fundingCost = BancorFormula._fundCost(
             fundingOptions[5] + fills[creator][hash],
-            fundingOptions[6] + campaignTotalFunded[creator][hash],
+            fundingOptions[6] + offerTotalFunded[creator][hash],
             uint32(fundingOptions[7]),
             fillAmount
         );
@@ -294,13 +294,13 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
 
     /* INTERNAL */
 
-    function _fundCampaign(
-        Campaign memory campaign,
+    function _fundOffer(
+        Offer memory offer,
         Call memory call,
         bytes memory signature
     ) internal {
         address taker = _msgSender();
-        (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeCampaignContribution(campaign, call, signature);
+        (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeOfferContribution(offer, call, signature);
 
         require(newFill > previousFill, "FLAIR_FINANCE/NOT_FILLED");
 
@@ -308,13 +308,13 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
 
         uint256 fundingCost =
             BancorFormula._fundCost(
-                campaign.fundingOptions[5] + previousFill,
-                campaign.fundingOptions[6] + campaignTotalFunded[campaign.creator][hash],
-                uint32(campaign.fundingOptions[7]),
+                offer.fundingOptions[5] + previousFill,
+                offer.fundingOptions[6] + offerTotalFunded[offer.creator][hash],
+                uint32(offer.fundingOptions[7]),
                 filled
             );
 
-        campaignTotalFunded[campaign.creator][hash] += fundingCost;
+        offerTotalFunded[offer.creator][hash] += fundingCost;
 
         {
             uint256 protocolFeeAmount = (fundingCost * _protocolFee) / INVERSE_BASIS_POINT;
@@ -328,9 +328,9 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
             _funding.call{value: fundingCost}(
                 abi.encodeWithSignature(
                     "registerContribution(address,bytes32,uint256[8],address,uint256,uint256)",
-                    campaign.beneficiary,
+                    offer.beneficiary,
                     hash,
-                    campaign.fundingOptions,
+                    offer.fundingOptions,
                     taker,
                     filled,
                     fundingCost
@@ -339,17 +339,17 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
 
         require(success, "FLAIR_FINANCE/INVESTMENT_FAILED");
 
-        emit CampaignFunded(hash, campaign.creator, msg.sender, filled, newFill);
+        emit OfferFunded(hash, offer.creator, msg.sender, filled, newFill);
     }
 
     function _cancelFunding(
-        Campaign memory campaign,
+        Offer memory offer,
         Call memory call,
         bytes memory signature,
         uint256 contributionId
     ) internal {
         address taker = _msgSender();
-        (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeCampaignCancellation(campaign, call, signature);
+        (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeOfferCancellation(offer, call, signature);
 
         require(previousFill > newFill, "FLAIR_FINANCE/NOT_UNFILLED");
 
@@ -359,7 +359,7 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
             _funding.call(
                 abi.encodeWithSignature(
                     "refundContribution(address,bytes32,address,uint256,uint256)",
-                    campaign.beneficiary,
+                    offer.beneficiary,
                     hash,
                     taker,
                     unfilled,
@@ -369,6 +369,6 @@ contract Finance is Campaigns, BancorFormula, AccessControlUpgradeable {
 
         require(success, "FLAIR_FINANCE/CANCELLATION_FAILED");
 
-        emit FundingCancelled(hash, campaign.creator, msg.sender, unfilled, newFill);
+        emit FundingCancelled(hash, offer.creator, msg.sender, unfilled, newFill);
     }
 }

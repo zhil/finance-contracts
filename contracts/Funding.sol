@@ -29,7 +29,7 @@ contract Funding is
 
     struct Contribution {
         address investor;
-        bytes32 campaignHash;
+        bytes32 offerHash;
         uint256 amount;
         uint256 filled;
         uint256 registeredAt;
@@ -65,7 +65,7 @@ contract Funding is
 
     event ContributionRegistered(
         address indexed beneficiary,
-        bytes32 indexed campaignHash,
+        bytes32 indexed offerHash,
         address indexed investor,
         uint256 filled,
         uint256 amount,
@@ -74,7 +74,7 @@ contract Funding is
 
     event ContributionRefunded(
         address indexed beneficiary,
-        bytes32 indexed campaignHash,
+        bytes32 indexed offerHash,
         address indexed investor,
         uint256 unfilled,
         uint256 remainderAmount,
@@ -186,13 +186,13 @@ contract Funding is
 
     /* PUBLIC */
 
-    function totalContributionsByHash(bytes32 campaignHash) public view returns (uint256) {
-        return contributionsByHash[campaignHash].length;
+    function totalContributionsByHash(bytes32 offerHash) public view returns (uint256) {
+        return contributionsByHash[offerHash].length;
     }
 
     function registerContribution(
         address beneficiary,
-        bytes32 campaignHash,
+        bytes32 offerHash,
         uint256[8] memory fundingOptions,
         address investor,
         uint256 filled,
@@ -203,24 +203,24 @@ contract Funding is
         require(filled > 0, "FUNDING/INVALID_FILLED");
 
         /* EFFECTS */
-        if (filledTotalByBeneficiaryAndHash[beneficiary][campaignHash] < 1) {
-            hashesByBeneficiary[beneficiary].push(campaignHash);
-            optionsByHash[campaignHash] = fundingOptions;
+        if (filledTotalByBeneficiaryAndHash[beneficiary][offerHash] < 1) {
+            hashesByBeneficiary[beneficiary].push(offerHash);
+            optionsByHash[offerHash] = fundingOptions;
         }
 
-        contributions.push(Contribution(investor, campaignHash, amount, filled, block.timestamp, 0));
+        contributions.push(Contribution(investor, offerHash, amount, filled, block.timestamp, 0));
         uint256 contributionId = contributions.length - 1;
 
-        contributionsByHash[campaignHash].push(contributionId);
-        filledTotalByBeneficiaryAndHash[beneficiary][campaignHash] += filled;
+        contributionsByHash[offerHash].push(contributionId);
+        filledTotalByBeneficiaryAndHash[beneficiary][offerHash] += filled;
 
         /* LOG */
-        emit ContributionRegistered(beneficiary, campaignHash, investor, filled, amount, contributionId);
+        emit ContributionRegistered(beneficiary, offerHash, investor, filled, amount, contributionId);
     }
 
     function refundContribution(
         address beneficiary,
-        bytes32 campaignHash,
+        bytes32 offerHash,
         address investor,
         uint256 unfilled,
         uint256 contributionId
@@ -230,14 +230,14 @@ contract Funding is
         require(contributions[contributionId].registeredAt > 0, "FUNDING/INVALID_CONTRIBUTION");
 
         require(
-            unfilled > 0 && filledTotalByBeneficiaryAndHash[beneficiary][campaignHash] >= unfilled,
+            unfilled > 0 && filledTotalByBeneficiaryAndHash[beneficiary][offerHash] >= unfilled,
             "FUNDING/INVALID_UNFILLED"
         );
         require(contributions[contributionId].canceledAt == 0, "FUNDING/ALREADY_CANCELED");
         require(contributions[contributionId].investor == investor, "FUNDING/NOT_INVESTOR");
         require(contributions[contributionId].filled == unfilled, "FUNDING/FILL_MISMATCH");
 
-        uint256 toBeReleased = _calculateReleasedAmountUntil(contributions[contributionId], block.timestamp, campaignHash);
+        uint256 toBeReleased = _calculateReleasedAmountUntil(contributions[contributionId], block.timestamp, offerHash);
 
         require(toBeReleased < contributions[contributionId].amount, "FUNDING/NOTHING_TO_REFUND");
 
@@ -245,13 +245,13 @@ contract Funding is
 
         /* EFFECTS */
         contributions[contributionId].canceledAt = block.timestamp;
-        filledTotalByBeneficiaryAndHash[beneficiary][campaignHash] -= unfilled;
+        filledTotalByBeneficiaryAndHash[beneficiary][offerHash] -= unfilled;
 
         /* INTERACTIONS */
         payable(investor).sendValue(remainderAmount);
 
         /* LOG */
-        emit ContributionRefunded(beneficiary, campaignHash, investor, unfilled, remainderAmount, contributionId);
+        emit ContributionRefunded(beneficiary, offerHash, investor, unfilled, remainderAmount, contributionId);
     }
 
     function releaseAllToBeneficiary() public virtual nonReentrant {

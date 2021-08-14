@@ -15,7 +15,7 @@ const EIP712_DOMAIN = {
   ],
 };
 const EIP712_CAMPAIGN = {
-  name: 'Campaign',
+  name: 'Offer',
   fields: [
     { name: 'beneficiary', type: 'address' },
     { name: 'fundingOptions', type: 'uint256[8]' },
@@ -37,11 +37,11 @@ const increaseTime = async (seconds) => {
   return ethers.provider.send('evm_increaseTime', [seconds]);
 };
 
-const getEIP712Data = (campaign, financeContract) => {
+const getEIP712Data = (offer, financeContract) => {
   return {
     types: {
       EIP712Domain: EIP712_DOMAIN.fields,
-      Campaign: EIP712_CAMPAIGN.fields,
+      Offer: EIP712_CAMPAIGN.fields,
     },
     domain: {
       name: 'Flair Finance',
@@ -49,28 +49,28 @@ const getEIP712Data = (campaign, financeContract) => {
       chainId: 31337,
       verifyingContract: financeContract.address.toLowerCase(),
     },
-    primaryType: 'Campaign',
-    message: campaign,
+    primaryType: 'Offer',
+    message: offer,
   };
 };
 
-const hashCampaign = (campaign, financeContract) => {
-  const data = getEIP712Data(campaign, financeContract);
+const hashOffer = (offer, financeContract) => {
+  const data = getEIP712Data(offer, financeContract);
   return `0x${sigUtils.TypedDataUtils.hashStruct(
     data.primaryType,
-    campaign,
+    offer,
     data.types
   ).toString('hex')}`;
 };
 
-const hashToSign = (campaign, financeContract) => {
+const hashToSign = (offer, financeContract) => {
   return `0x${sigUtils.TypedDataUtils.sign(
-    getEIP712Data(campaign, financeContract)
+    getEIP712Data(offer, financeContract)
   ).toString('hex')}`;
 };
 
-const signCampaign = async (campaign, account, financeContract) => {
-  const data = getEIP712Data(campaign, financeContract);
+const signOffer = async (offer, account, financeContract) => {
+  const data = getEIP712Data(offer, financeContract);
 
   const signature = await account.provider.send('eth_signTypedData_v4', [
     account.address.toLowerCase(),
@@ -111,30 +111,33 @@ const generateFundingOptions = ({
   ];
 };
 
-function prepareCampaignArgs(campaign, signature, call = {}, extraInts = []) {
+function prepareOfferArgs(offer, signature, call = {}, extraInts = []) {
   const addrs = [
-    campaign.beneficiary,
-    campaign.registry,
-    campaign.creator,
-    campaign.contributionValidatorTarget,
-    campaign.cancellationValidatorTarget,
+    offer.beneficiary,
+    offer.registry,
+    offer.creator,
+    offer.contributionValidatorTarget,
+    offer.cancellationValidatorTarget,
     call.target || ZERO_ADDRESS,
   ];
 
   const ints = [
-    campaign.maximumFill,
-    campaign.listingTime,
-    campaign.expirationTime,
+    offer.maximumFill,
+    offer.listingTime,
+    offer.expirationTime,
     ...extraInts,
   ];
 
   const args = [
-    campaign.fundingOptions,
+    offer.fundingOptions,
     addrs,
     ints,
-    [campaign.contributionValidatorSelector, campaign.cancellationValidatorSelector],
-    campaign.contributionValidatorExtradata,
-    campaign.cancellationValidatorExtradata,
+    [
+      offer.contributionValidatorSelector,
+      offer.cancellationValidatorSelector,
+    ],
+    offer.contributionValidatorExtradata,
+    offer.cancellationValidatorExtradata,
   ];
 
   if (signature && call) {
@@ -148,9 +151,9 @@ module.exports = {
   ZERO_ADDRESS,
   ZERO_BYTES32,
   increaseTime,
-  hashCampaign,
+  hashOffer,
   hashToSign,
-  signCampaign,
+  signOffer,
   generateFundingOptions,
-  prepareCampaignArgs,
+  prepareOfferArgs,
 };

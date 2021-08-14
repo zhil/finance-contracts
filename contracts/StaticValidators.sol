@@ -14,7 +14,7 @@ contract StaticValidators {
     constructor() public {}
 
     /**
-     * Useful for campaigns that allow buyers provide how much they want to fill
+     * Useful for offers that allow buyers provide how much they want to fill
      * (e.g. buyers can choose how many punks to mint on each investment).
      *
      * This static check assumes position of chosen amount (must be uin256) is predictable from the call data.
@@ -22,9 +22,9 @@ contract StaticValidators {
      */
     function acceptContractAndSelectorAddUint256FillFromCallData(
         bytes memory extraData,
-        address[5] memory addresses, // campaign.beneficiary, campaign.registry, campaign.creator, campaign.target, taker
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
         AuthenticatedProxy.HowToCall howToCall,
-        uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
         (address requiredTarget, bytes4 requiredSelector, uint32 amountOffset) =
@@ -53,9 +53,9 @@ contract StaticValidators {
 
     function acceptContractAndSelectorAddUint32FillFromCallData(
         bytes memory extraData,
-        address[5] memory addresses, // campaign.beneficiary, campaign.registry, campaign.creator, campaign.target, taker
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
         AuthenticatedProxy.HowToCall howToCall,
-        uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
         (address requiredTarget, bytes4 requiredSelector, uint32 amountOffset) =
@@ -83,16 +83,16 @@ contract StaticValidators {
     }
 
     /**
-     * Useful for campaigns that give buyers same amount of fill (e.g. all buyers get 2 punks for each investment).
+     * Useful for offers that give buyers same amount of fill (e.g. all buyers get 2 punks for each investment).
      */
     function acceptContractAndSelectorAddUint32FillFromExtraData(
         bytes memory extraData,
-        address[5] memory addresses, // campaign.beneficiary, campaign.registry, campaign.creator, campaign.target, taker
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
         AuthenticatedProxy.HowToCall howToCall,
-        uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
-        (address requiredTarget, bytes4 requiredSelector, uint32 campaignedAmount) =
+        (address requiredTarget, bytes4 requiredSelector, uint32 offeredAmount) =
             abi.decode(extraData, (address, bytes4, uint32));
 
         require(howToCall == AuthenticatedProxy.HowToCall.Call, "STATIC_VALIDATOR/INVALID_CALLTYPE");
@@ -105,7 +105,7 @@ contract StaticValidators {
             "STATIC_VALIDATOR/INVALID_SELECTOR"
         );
 
-        uint256 newFill = uints[4] + campaignedAmount; /* currentFill */
+        uint256 newFill = uints[4] + offeredAmount; /* currentFill */
 
         require(
             newFill <= uints[1], /* maximumFill */
@@ -117,13 +117,13 @@ contract StaticValidators {
 
     function acceptTransferERC721Exact(
         bytes memory extraData,
-        address[5] memory addresses, // campaign.beneficiary, campaign.registry, campaign.creator, campaign.target, taker
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
         AuthenticatedProxy.HowToCall howToCall,
-        uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
         // Decode extradata
-        (address token, uint256 tokenId) = abi.decode(extraData, (address, uint256));
+        (address tokenAddress, uint256 tokenId) = abi.decode(extraData, (address, uint256));
 
         require(
             uints[4] == 0, /* currentFill */
@@ -132,10 +132,12 @@ contract StaticValidators {
 
         // Call target == ERC-721 token to give
         require(
-            addresses[3] == token /* campaign.target */
+            addresses[3] == tokenAddress /* offer.target */
         );
+
         // Call type = call
         require(howToCall == AuthenticatedProxy.HowToCall.Call);
+
         // Assert calldata
         require(
             ArrayUtils.arrayEq(
@@ -143,7 +145,7 @@ contract StaticValidators {
                 abi.encodeWithSignature(
                     "transferFrom(address,address,uint256)",
                     addresses[2], /* creator */
-                    addresses[4], /* taker */
+                    addresses[4], /* funder */
                     tokenId
                 )
             )
@@ -152,11 +154,50 @@ contract StaticValidators {
         return 1;
     }
 
+    function acceptReturnERC721Exact(
+        bytes memory extraData,
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
+        AuthenticatedProxy.HowToCall howToCall,
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
+        bytes memory data
+    ) public pure returns (uint256) {
+        // Decode extradata
+        (address tokenAddress, uint256 expectedTokenId) = abi.decode(extraData, (address, uint256));
+
+        require(
+            uints[4] > 0, /* currentFill */
+            "STATIC_VALIDATOR/NOT_FILLED"
+        );
+
+        // Call target == ERC-721 token to give
+        require(
+            addresses[3] == tokenAddress /* offer.target */
+        );
+
+        // Call type = call
+        require(howToCall == AuthenticatedProxy.HowToCall.Call);
+
+        // Assert calldata
+        require(
+            ArrayUtils.arrayEq(
+                data,
+                abi.encodeWithSignature(
+                    "transferFrom(address,address,uint256)",
+                    addresses[4], /* funder */
+                    addresses[2], /* creator */
+                    expectedTokenId
+                )
+            )
+        );
+
+        return 0;
+    }
+
     function acceptReturnERC721Any(
         bytes memory extraData,
-        address[5] memory addresses, // campaign.beneficiary, campaign.registry, campaign.creator, campaign.target, taker
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
         AuthenticatedProxy.HowToCall howToCall,
-        uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
         // Decode extradata
@@ -169,7 +210,7 @@ contract StaticValidators {
 
         // Call target == ERC-721 token to give
         require(
-            addresses[3] == token /* campaign.target */
+            addresses[3] == token /* offer.target */
         );
 
         // Call type = call
@@ -197,9 +238,9 @@ contract StaticValidators {
 
     function acceptTransferERC1155AnyAmount(
         bytes memory extraData,
-        address[5] memory addresses, // campaign.beneficiary, campaign.registry, campaign.creator, campaign.target, taker
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
         AuthenticatedProxy.HowToCall howToCall,
-        uint256[5] memory uints, // msg.value, campaign.maximumFill, campaign.listingTime, campaign.expirationTime, currentFill
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
     ) public pure returns (uint256) {
         // Decode extradata
@@ -213,7 +254,7 @@ contract StaticValidators {
 
         // Call target == ERC-1155 token to give
         require(
-            addresses[3] == token /* campaign.target */
+            addresses[3] == token /* offer.target */
         );
         // Call type = call
         require(howToCall == AuthenticatedProxy.HowToCall.Call);

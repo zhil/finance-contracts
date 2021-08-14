@@ -187,7 +187,7 @@
           "type": "uint256"
         }
       ],
-      "name": "CampaignApproved",
+      "name": "OfferApproved",
       "type": "event"
     },
     {
@@ -212,7 +212,7 @@
           "type": "uint256"
         }
       ],
-      "name": "CampaignFillChanged",
+      "name": "OfferFillChanged",
       "type": "event"
     },
     {
@@ -249,7 +249,7 @@
           "type": "uint256"
         }
       ],
-      "name": "CampaignFunded",
+      "name": "OfferFunded",
       "type": "event"
     },
     {
@@ -423,7 +423,7 @@
           "type": "bytes"
         }
       ],
-      "name": "approveCampaign",
+      "name": "approveOffer",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -436,7 +436,7 @@
           "type": "bytes32"
         }
       ],
-      "name": "approveCampaignHash",
+      "name": "approveOfferHash",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -478,7 +478,7 @@
           "type": "bytes32"
         }
       ],
-      "name": "campaignTotalFunded",
+      "name": "offerTotalFunded",
       "outputs": [
         {
           "internalType": "uint256",
@@ -614,7 +614,7 @@
           "type": "bytes"
         }
       ],
-      "name": "fundCampaign",
+      "name": "fundOffer",
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
@@ -642,7 +642,7 @@
           "type": "uint256"
         }
       ],
-      "name": "getCampaignFundingCost",
+      "name": "getOfferFundingCost",
       "outputs": [
         {
           "internalType": "uint256",
@@ -752,7 +752,7 @@
           "type": "bytes"
         }
       ],
-      "name": "hashCampaign",
+      "name": "hashOffer",
       "outputs": [
         {
           "internalType": "bytes32",
@@ -891,7 +891,7 @@
           "type": "uint256"
         }
       ],
-      "name": "setCampaignFill",
+      "name": "setOfferFill",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -972,7 +972,7 @@
           "type": "bytes"
         }
       ],
-      "name": "validateCampaignAuthorization",
+      "name": "validateOfferAuthorization",
       "outputs": [
         {
           "internalType": "bool",
@@ -1016,7 +1016,7 @@
           "type": "bytes"
         }
       ],
-      "name": "validateCampaignParameters",
+      "name": "validateOfferParameters",
       "outputs": [
         {
           "internalType": "bool",

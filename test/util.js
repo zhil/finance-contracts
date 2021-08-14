@@ -14,7 +14,7 @@ const EIP712_DOMAIN = {
     { name: 'verifyingContract', type: 'address' },
   ],
 };
-const EIP712_CAMPAIGN = {
+const EIP712_OFFER = {
   name: 'Offer',
   fields: [
     { name: 'beneficiary', type: 'address' },
@@ -41,7 +41,7 @@ const getEIP712Data = (offer, financeContract) => {
   return {
     types: {
       EIP712Domain: EIP712_DOMAIN.fields,
-      Offer: EIP712_CAMPAIGN.fields,
+      Offer: EIP712_OFFER.fields,
     },
     domain: {
       name: 'Flair Finance',

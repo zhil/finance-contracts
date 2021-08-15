@@ -90,6 +90,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
     /* EVENTS */
 
     event OfferApproved(
+        uint256[8] fundingOptions,
         bytes32 indexed hash,
         address registry,
         address indexed creator,
@@ -368,6 +369,7 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
         /* Log approval event. */
         emit OfferApproved(
             hash,
+            offer.fundingOptions,
             offer.registry,
             offer.creator,
             offer.contributionValidatorTarget,

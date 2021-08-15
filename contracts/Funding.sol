@@ -4,6 +4,7 @@ pragma solidity 0.8.3;
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
 import "./lib/BancorFormula.sol";
 import "./lib/PaymentRecipientUpgradable.sol";
@@ -20,7 +21,7 @@ contract Funding is
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
 
-    string public constant name = "Flair Public Funding Pool";
+    string public constant name = "Flair Common Funding Pool";
 
     string public constant version = "0.1";
 
@@ -33,7 +34,7 @@ contract Funding is
         uint256 amount;
         uint256 filled;
         uint256 registeredAt;
-        uint256 canceledAt;
+        uint256 refundedAt;
     }
 
     uint256 constant INVERSE_BASIS_POINT = 10000;
@@ -43,8 +44,11 @@ contract Funding is
     uint256 private _totalContribution;
     uint256 private _totalRewarded;
 
-    /* Contributions by incremental ID. */
+    /* All contributions ever added to this funding pool. */
     Contribution[] public contributions;
+
+    /* Contributions incremental ID. */
+    CountersUpgradeable.Counter private _contributionIdTracker;
 
     /* Contributions, by hash. */
     mapping(bytes32 => uint256[]) public contributionsByHash;
@@ -123,8 +127,8 @@ contract Funding is
     ) internal view returns (uint256) {
         uint256[8] memory options = optionsByHash[hash];
         uint256 effectiveCheckpoint =
-            contribution.canceledAt > 0
-                ? (contribution.canceledAt < checkpoint ? contribution.canceledAt : checkpoint)
+            contribution.refundedAt > 0
+                ? (contribution.refundedAt < checkpoint ? contribution.refundedAt : checkpoint)
                 : checkpoint;
 
         if (effectiveCheckpoint < contribution.registeredAt) {
@@ -233,7 +237,7 @@ contract Funding is
             unfilled > 0 && filledTotalByBeneficiaryAndHash[beneficiary][offerHash] >= unfilled,
             "FUNDING/INVALID_UNFILLED"
         );
-        require(contributions[contributionId].canceledAt == 0, "FUNDING/ALREADY_CANCELED");
+        require(contributions[contributionId].refundedAt == 0, "FUNDING/ALREADY_CANCELED");
         require(contributions[contributionId].investor == investor, "FUNDING/NOT_INVESTOR");
         require(contributions[contributionId].filled == unfilled, "FUNDING/FILL_MISMATCH");
 
@@ -244,7 +248,7 @@ contract Funding is
         uint256 remainderAmount = contributions[contributionId].amount - toBeReleased;
 
         /* EFFECTS */
-        contributions[contributionId].canceledAt = block.timestamp;
+        contributions[contributionId].refundedAt = block.timestamp;
         filledTotalByBeneficiaryAndHash[beneficiary][offerHash] -= unfilled;
 
         /* INTERACTIONS */
@@ -252,6 +256,15 @@ contract Funding is
 
         /* LOG */
         emit ContributionRefunded(beneficiary, offerHash, investor, unfilled, remainderAmount, contributionId);
+    }
+
+    function calculateAllReleasableAmount(address beneficiary) public view returns (uint256 totalToBeReleased) {
+        totalToBeReleased = 0;
+
+        for (uint256 i = 0; i < hashesByBeneficiary[beneficiary].length; i++) {
+            bytes32 hash = hashesByBeneficiary[beneficiary][i];
+            totalToBeReleased += _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
+        }
     }
 
     function releaseAllToBeneficiary() public virtual nonReentrant {
@@ -271,13 +284,23 @@ contract Funding is
         _reward(beneficiary, totalToBeReleased);
     }
 
+    function calculateReleasableAmountByHash(address beneficiary, bytes32 hash)
+        public
+        view
+        returns (uint256)
+    {
+        return _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
+    }
+
     function releaseToBeneficiaryByHash(bytes32 hash) public virtual nonReentrant {
         address beneficiary = _msgSender();
         uint256 now = block.timestamp;
 
+        /* EFFECTS */
         uint256 totalToBeReleased = _prepareReleaseToBeneficiaryByHash(beneficiary, hash);
         require(totalToBeReleased > 0, "FUNDING/NOTHING_TO_RELEASE");
 
+        /* INTERACTIONS */
         payable(beneficiary).sendValue(totalToBeReleased);
         _reward(beneficiary, totalToBeReleased);
     }
@@ -291,6 +314,19 @@ contract Funding is
 
         require(lastRelease <= now - 1 hours, "FUNDING/RELEASE_HOURLY_LIMIT");
 
+        toBeReleased = _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
+
+        releasedTimes[beneficiary][hash] = now;
+    }
+
+    function _calculateReleasableToBeneficiaryByHash(address beneficiary, bytes32 hash)
+        internal
+        view
+        returns (uint256 toBeReleased)
+    {
+        uint256 now = block.timestamp;
+        uint256 lastRelease = releasedTimes[beneficiary][hash];
+
         toBeReleased = 0;
 
         for (uint256 j = 0; j < contributionsByHash[hash].length; j++) {
@@ -298,7 +334,5 @@ contract Funding is
                 _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], now, hash) -
                 _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], lastRelease, hash);
         }
-
-        releasedTimes[beneficiary][hash] = now;
     }
 }

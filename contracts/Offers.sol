@@ -368,8 +368,8 @@ contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller,
 
         /* Log approval event. */
         emit OfferApproved(
-            hash,
             offer.fundingOptions,
+            hash,
             offer.registry,
             offer.creator,
             offer.contributionValidatorTarget,

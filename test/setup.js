@@ -31,6 +31,10 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           governor
         ),
+        erc1155Placeholders: await ethers.getContract(
+          'ERC1155Placeholders',
+          governor
+        ),
         testERC721: await ethers.getContract('TestERC721', governor),
       },
       userA: {
@@ -42,6 +46,10 @@ const setupTest = deployments.createFixture(
         fundingContract: await ethers.getContract('Funding', accounts[0]),
         staticValidators: await ethers.getContract(
           'StaticValidators',
+          accounts[0]
+        ),
+        erc1155Placeholders: await ethers.getContract(
+          'ERC1155Placeholders',
           accounts[0]
         ),
         testERC721: await ethers.getContract('TestERC721', accounts[0]),
@@ -57,6 +65,10 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[1]
         ),
+        erc1155Placeholders: await ethers.getContract(
+          'ERC1155Placeholders',
+          accounts[1]
+        ),
         testERC721: await ethers.getContract('TestERC721', accounts[1]),
       },
       userC: {
@@ -68,6 +80,10 @@ const setupTest = deployments.createFixture(
         fundingContract: await ethers.getContract('Funding', accounts[2]),
         staticValidators: await ethers.getContract(
           'StaticValidators',
+          accounts[2]
+        ),
+        erc1155Placeholders: await ethers.getContract(
+          'ERC1155Placeholders',
           accounts[2]
         ),
         testERC721: await ethers.getContract('TestERC721', accounts[2]),
@@ -83,6 +99,10 @@ const setupTest = deployments.createFixture(
           'StaticValidators',
           accounts[3]
         ),
+        erc1155Placeholders: await ethers.getContract(
+          'ERC1155Placeholders',
+          accounts[3]
+        ),
         testERC721: await ethers.getContract('TestERC721', accounts[3]),
       },
       userE: {
@@ -94,6 +114,10 @@ const setupTest = deployments.createFixture(
         fundingContract: await ethers.getContract('Funding', accounts[4]),
         staticValidators: await ethers.getContract(
           'StaticValidators',
+          accounts[4]
+        ),
+        erc1155Placeholders: await ethers.getContract(
+          'ERC1155Placeholders',
           accounts[4]
         ),
         testERC721: await ethers.getContract('TestERC721', accounts[4]),

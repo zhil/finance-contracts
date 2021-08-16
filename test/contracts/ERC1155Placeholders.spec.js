@@ -48,7 +48,7 @@ describe('ERC1155Placeholders', () => {
     ).to.equal(300);
   });
 
-  it('should approve all for a user', async () => {
+  it('should approve all for a user and allow transfer', async () => {
     const { userA, userB, userC } = await setupTest();
     const ipfsHash1 = uuid();
     const ipfsHash2 = uuid();
@@ -77,5 +77,29 @@ describe('ERC1155Placeholders', () => {
     expect(
       await userB.erc1155Placeholders.balanceOf(userC.signer.address, 2)
     ).to.equal(15);
+  });
+
+  it('should not allow transfer if not approved', async () => {
+    const { userA, userB, userC } = await setupTest();
+    const ipfsHash1 = uuid();
+    const ipfsHash2 = uuid();
+    const ipfsHash3 = uuid();
+
+    await userA.erc1155Placeholders.mintBatch(
+      userA.signer.address,
+      [ipfsHash1, ipfsHash2, ipfsHash3],
+      [100, 200, 300],
+      '0x'
+    );
+
+    await expect(
+      userB.erc1155Placeholders.safeTransferFrom(
+        userA.signer.address,
+        userC.signer.address,
+        2,
+        15,
+        '0x'
+      )
+    ).to.be.revertedWith('ERC1155: caller is not owner nor approved');
   });
 });

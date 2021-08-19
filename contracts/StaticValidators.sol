@@ -218,7 +218,7 @@ contract StaticValidators {
 
         // Assert calldata
 
-        uint256 tokenId = getERC721TokenIdFromCalldata(data);
+        uint256 tokenId = getNftTokenIdFromCalldata(data);
         require(tokenId > 0, "STATIC_VALIDATOR/INVALID_TOKEN_ID");
 
         require(
@@ -287,11 +287,59 @@ contract StaticValidators {
         return newFill;
     }
 
+    function acceptReturnERC1155AnyAmount(
+        bytes memory extraData,
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
+        AuthenticatedProxy.HowToCall howToCall,
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
+        bytes memory data
+    ) public pure returns (uint256) {
+        // Decode extradata
+        (address token, uint256 tokenId) = abi.decode(extraData, (address, uint256));
+
+        require(
+            uints[4] /* currentFill */ > 0,
+            "STATIC_VALIDATOR/NOT_FILLED"
+        );
+
+        // Call target == ERC-1155 token to give
+        require(
+            addresses[3] /* offer.target */ == token
+        );
+
+        // Call type = call
+        require(howToCall == AuthenticatedProxy.HowToCall.Call);
+
+        uint256 requestedAmount = getERC1155AmountFromCalldata(data);
+        require(uints[4] /* currentFill */ >= requestedAmount, "STATIC_VALIDATOR/EXCEEDS_CURRENT_FILL");
+
+        // Assert calldata
+
+        uint256 tokenId = getNftTokenIdFromCalldata(data);
+        require(tokenId > 0, "STATIC_VALIDATOR/INVALID_TOKEN_ID");
+
+        require(
+            ArrayUtils.arrayEq(
+                data,
+                abi.encodeWithSignature(
+                    "safeTransferFrom(address,address,uint256,uint256,bytes)",
+                    addresses[4], /* taker */
+                    addresses[2], /* creator */
+                    tokenId,
+                    requestedAmount,
+                    ""
+                )
+            )
+        );
+
+        return uints[4] /* currentFill */ - requestedAmount;
+    }
+
     function getERC1155AmountFromCalldata(bytes memory data) internal pure returns (uint256 amount) {
         amount = abi.decode(ArrayUtils.slice(data, 100, 32), (uint256));
     }
 
-    function getERC721TokenIdFromCalldata(bytes memory data) internal pure returns (uint256 tokenId) {
+    function getNftTokenIdFromCalldata(bytes memory data) internal pure returns (uint256 tokenId) {
         tokenId = abi.decode(ArrayUtils.slice(data, 68, 32), (uint256));
     }
 }

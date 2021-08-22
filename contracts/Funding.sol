@@ -284,12 +284,35 @@ contract Funding is
         _reward(beneficiary, totalToBeReleased);
     }
 
+    function calculateReleasableAmountByHashBatch(address beneficiary, bytes32[] calldata hashes)
+    public
+    view
+    returns (uint256 toBeReleased)
+    {
+        toBeReleased = 0;
+        for (uint256 j = 0; j < hashes.length; j++) {
+            toBeReleased += _calculateReleasableToBeneficiaryByHash(beneficiary, hashes[j]);
+        }
+    }
+
     function calculateReleasableAmountByHash(address beneficiary, bytes32 hash)
         public
         view
         returns (uint256)
     {
         return _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
+    }
+
+    function calculateReleasedAmountByContributionId(address beneficiary, uint256 contributionId)
+    public
+    view
+    returns (uint256)
+    {
+        return _calculateReleasedAmountUntil(
+            contributions[contributionId],
+            block.timestamp,
+            contributions[contributionId].offerHash
+        );
     }
 
     function releaseToBeneficiaryByHash(bytes32 hash) public virtual nonReentrant {

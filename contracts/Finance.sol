@@ -8,8 +8,6 @@ import "./lib/BancorFormula.sol";
 import "./lib/ERC712.sol";
 import "./Offers.sol";
 
-import "hardhat/console.sol";
-
 contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
     using AddressUpgradeable for address;
     using AddressUpgradeable for address payable;
@@ -128,8 +126,8 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
             );
     }
 
-    function hashToSign(bytes32 orderHash) external view returns (bytes32 hash) {
-        return _hashToSign(orderHash);
+    function hashToSign(bytes32 offerHash) external view returns (bytes32 hash) {
+        return _hashToSign(offerHash);
     }
 
     function validateOfferParameters(

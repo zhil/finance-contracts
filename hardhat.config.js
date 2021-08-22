@@ -44,6 +44,10 @@ module.exports = {
     localhost: {
       url: `http://127.0.0.1:8545`,
       network_id: '*',
+      gas: 12000000,
+      blockGasLimit: 0x1fffffffffffff,
+      allowUnlimitedContractSize: true,
+      timeout: 1800000,
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID}`,

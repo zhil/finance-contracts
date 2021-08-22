@@ -315,9 +315,6 @@ contract StaticValidators {
 
         // Assert calldata
 
-        uint256 tokenId = getNftTokenIdFromCalldata(data);
-        require(tokenId > 0, "STATIC_VALIDATOR/INVALID_TOKEN_ID");
-
         require(
             ArrayUtils.arrayEq(
                 data,

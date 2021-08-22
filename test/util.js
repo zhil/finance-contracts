@@ -132,10 +132,7 @@ function prepareOfferArgs(offer, signature, call = {}, extraInts = []) {
     offer.fundingOptions,
     addrs,
     ints,
-    [
-      offer.contributionValidatorSelector,
-      offer.cancellationValidatorSelector,
-    ],
+    [offer.contributionValidatorSelector, offer.cancellationValidatorSelector],
     offer.contributionValidatorExtradata,
     offer.cancellationValidatorExtradata,
   ];

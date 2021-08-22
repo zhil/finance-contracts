@@ -9,8 +9,6 @@ import "./lib/proxy/AuthenticatedProxy.sol";
 import "./lib/StaticCaller.sol";
 import "./lib/ERC1271.sol";
 
-import "hardhat/console.sol";
-
 contract Offers is ContextUpgradeable, ReentrancyGuardUpgradeable, StaticCaller, EIP712Upgradeable {
     bytes4 internal constant ERC1271_MAGICVALUE = 0x20c13b0b; // bytes4(keccak256("isValidSignature(bytes,bytes)")
 

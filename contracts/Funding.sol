@@ -188,6 +188,50 @@ contract Funding is
         require(success, "FUNDING/REWARD_FAILED");
     }
 
+    function _prepareReleaseToBeneficiaryByHash(address beneficiary, bytes32 hash)
+    internal
+    returns (uint256 releasable)
+    {
+        uint256 now = block.timestamp;
+        uint256 lastRelease = releasedTimes[beneficiary][hash];
+
+        require(lastRelease <= now - 1 hours, "FUNDING/RELEASE_HOURLY_LIMIT");
+
+        releasable = _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
+
+        releasedTimes[beneficiary][hash] = now;
+    }
+
+    function _calculateReleasableToBeneficiaryByHash(address beneficiary, bytes32 hash)
+    internal
+    view
+    returns (uint256 releasable)
+    {
+        uint256 now = block.timestamp;
+        uint256 lastRelease = releasedTimes[beneficiary][hash];
+
+        releasable = 0;
+
+        for (uint256 j = 0; j < contributionsByHash[hash].length; j++) {
+            releasable +=
+            _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], now, hash) -
+            _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], lastRelease, hash);
+        }
+    }
+
+    function _calculateReleasedToBeneficiaryByHash(address beneficiary, bytes32 hash)
+    internal
+    view
+    returns (uint256 alreadyReleased)
+    {
+        uint256 now = block.timestamp;
+        alreadyReleased = 0;
+
+        for (uint256 j = 0; j < contributionsByHash[hash].length; j++) {
+            alreadyReleased += _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], now, hash);
+        }
+    }
+
     /* PUBLIC */
 
     function totalContributionsByHash(bytes32 offerHash) public view returns (uint256) {
@@ -258,13 +302,28 @@ contract Funding is
         emit ContributionRefunded(beneficiary, offerHash, investor, unfilled, remainderAmount, contributionId);
     }
 
-    function calculateAllReleasableAmount(address beneficiary) public view returns (uint256 totalToBeReleased) {
-        totalToBeReleased = 0;
+    function calculateStatsByHashBatch(address beneficiary, bytes32[] memory hashes) public view returns (
+        uint256 totalReleasable,
+        uint256 totalAlreadyReleased,
+        uint256 totalFilled
+    ) {
+        totalReleasable = 0;
+        totalAlreadyReleased = 0;
+        totalFilled = 0;
 
-        for (uint256 i = 0; i < hashesByBeneficiary[beneficiary].length; i++) {
-            bytes32 hash = hashesByBeneficiary[beneficiary][i];
-            totalToBeReleased += _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
+        for (uint256 i = 0; i < hashes.length; i++) {
+            totalReleasable += _calculateReleasableToBeneficiaryByHash(beneficiary, hashes[i]);
+            totalAlreadyReleased += _calculateReleasedToBeneficiaryByHash(beneficiary, hashes[i]);
+            totalFilled += filledTotalByBeneficiaryAndHash[beneficiary][hashes[i]];
         }
+    }
+
+    function calculateStatsByBeneficiary(address beneficiary) public view returns (
+        uint256 totalReleasable,
+        uint256 totalAlreadyReleased,
+        uint256 totalFilled
+    ) {
+        return calculateStatsByHashBatch(beneficiary, hashesByBeneficiary[beneficiary]);
     }
 
     function releaseAllToBeneficiary() public virtual nonReentrant {
@@ -274,33 +333,16 @@ contract Funding is
         uint256 totalToBeReleased;
 
         for (uint256 i = 0; i < hashesByBeneficiary[beneficiary].length; i++) {
-            bytes32 hash = hashesByBeneficiary[beneficiary][i];
-            totalToBeReleased += _prepareReleaseToBeneficiaryByHash(beneficiary, hash);
+            totalToBeReleased += _prepareReleaseToBeneficiaryByHash(
+                beneficiary,
+                hashesByBeneficiary[beneficiary][i]
+            );
         }
 
         /* INTERACTIONS */
         require(totalToBeReleased > 0, "FUNDING/NOTHING_TO_RELEASE");
         payable(beneficiary).sendValue(totalToBeReleased);
         _reward(beneficiary, totalToBeReleased);
-    }
-
-    function calculateReleasableAmountByHashBatch(address beneficiary, bytes32[] calldata hashes)
-    public
-    view
-    returns (uint256 toBeReleased)
-    {
-        toBeReleased = 0;
-        for (uint256 j = 0; j < hashes.length; j++) {
-            toBeReleased += _calculateReleasableToBeneficiaryByHash(beneficiary, hashes[j]);
-        }
-    }
-
-    function calculateReleasableAmountByHash(address beneficiary, bytes32 hash)
-        public
-        view
-        returns (uint256)
-    {
-        return _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
     }
 
     function calculateReleasedAmountByContributionId(address beneficiary, uint256 contributionId)
@@ -320,42 +362,11 @@ contract Funding is
         uint256 now = block.timestamp;
 
         /* EFFECTS */
-        uint256 totalToBeReleased = _prepareReleaseToBeneficiaryByHash(beneficiary, hash);
-        require(totalToBeReleased > 0, "FUNDING/NOTHING_TO_RELEASE");
+        uint256 totalReleasable = _prepareReleaseToBeneficiaryByHash(beneficiary, hash);
+        require(totalReleasable > 0, "FUNDING/NOTHING_TO_RELEASE");
 
         /* INTERACTIONS */
-        payable(beneficiary).sendValue(totalToBeReleased);
-        _reward(beneficiary, totalToBeReleased);
-    }
-
-    function _prepareReleaseToBeneficiaryByHash(address beneficiary, bytes32 hash)
-        internal
-        returns (uint256 toBeReleased)
-    {
-        uint256 now = block.timestamp;
-        uint256 lastRelease = releasedTimes[beneficiary][hash];
-
-        require(lastRelease <= now - 1 hours, "FUNDING/RELEASE_HOURLY_LIMIT");
-
-        toBeReleased = _calculateReleasableToBeneficiaryByHash(beneficiary, hash);
-
-        releasedTimes[beneficiary][hash] = now;
-    }
-
-    function _calculateReleasableToBeneficiaryByHash(address beneficiary, bytes32 hash)
-        internal
-        view
-        returns (uint256 toBeReleased)
-    {
-        uint256 now = block.timestamp;
-        uint256 lastRelease = releasedTimes[beneficiary][hash];
-
-        toBeReleased = 0;
-
-        for (uint256 j = 0; j < contributionsByHash[hash].length; j++) {
-            toBeReleased +=
-                _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], now, hash) -
-                _calculateReleasedAmountUntil(contributions[contributionsByHash[hash][j]], lastRelease, hash);
-        }
+        payable(beneficiary).sendValue(totalReleasable);
+        _reward(beneficiary, totalReleasable);
     }
 }

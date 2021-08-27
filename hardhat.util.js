@@ -1,5 +1,11 @@
-const deployUpgradableContract = async (deployments, from, owner, name, args) => {
-  const {deploy} = deployments;
+const deployUpgradableContract = async (
+  deployments,
+  from,
+  owner,
+  name,
+  args
+) => {
+  const { deploy } = deployments;
   const instance = await deployments.getOrNull(name);
 
   await deploy(name, {
@@ -9,23 +15,31 @@ const deployUpgradableContract = async (deployments, from, owner, name, args) =>
     proxy: {
       owner,
       proxyContract: 'OpenZeppelinTransparentProxy',
-      ...(instance && instance.implementation ? {} : {methodName: 'initialize'})
+      ...(instance && instance.implementation
+        ? {}
+        : { methodName: 'initialize' }),
     },
-    estimateGasExtra: 1000000
+    estimateGasExtra: 1000000,
   });
 };
 
-const deployPermanentContract = async (deployments, from, owner, name, args) => {
-  const {deploy} = deployments;
+const deployPermanentContract = async (
+  deployments,
+  from,
+  owner,
+  name,
+  args
+) => {
+  const { deploy } = deployments;
   await deploy(name, {
     from,
     args,
     log: true,
-    estimateGasExtra: 1000000
+    estimateGasExtra: 1000000,
   });
 };
 
 module.exports = {
   deployUpgradableContract,
-  deployPermanentContract
+  deployPermanentContract,
 };

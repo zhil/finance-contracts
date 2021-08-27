@@ -62,6 +62,9 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
         for (uint256 ind = 0; ind < registryAddrs.length; ind++) {
             registries[registryAddrs[ind]] = true;
         }
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(GOVERNOR_ROLE, _msgSender());
     }
 
     /* MODIFIERS */

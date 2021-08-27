@@ -34,7 +34,8 @@ const EIP712_OFFER = {
 };
 
 const increaseTime = async (seconds) => {
-  return ethers.provider.send('evm_increaseTime', [seconds]);
+  await ethers.provider.send('evm_increaseTime', [seconds]);
+  await ethers.provider.send('evm_mine');
 };
 
 const getEIP712Data = (offer, financeContract) => {

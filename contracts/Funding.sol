@@ -285,11 +285,11 @@ contract Funding is
         require(contributions[contributionId].investor == investor, "FUNDING/NOT_INVESTOR");
         require(contributions[contributionId].filled == unfilled, "FUNDING/FILL_MISMATCH");
 
-        uint256 toBeReleased = _calculateReleasedAmountUntil(contributions[contributionId], block.timestamp, offerHash);
+        uint256 alreadyReleased = _calculateReleasedAmountUntil(contributions[contributionId], block.timestamp, offerHash);
 
-        require(toBeReleased < contributions[contributionId].amount, "FUNDING/NOTHING_TO_REFUND");
+        require(alreadyReleased < contributions[contributionId].amount, "FUNDING/NOTHING_TO_REFUND");
 
-        uint256 remainderAmount = contributions[contributionId].amount - toBeReleased;
+        uint256 remainderAmount = contributions[contributionId].amount - alreadyReleased;
 
         /* EFFECTS */
         contributions[contributionId].refundedAt = block.timestamp;

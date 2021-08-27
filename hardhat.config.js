@@ -79,7 +79,8 @@ module.exports = {
         : {}),
     },
     mumbai: {
-      url: `https://polygon-mumbai.infura.io/v3/${INFURA_PROJECT_ID}`,
+      // url: `https://polygon-mumbai.infura.io/v3/${INFURA_PROJECT_ID}`,
+      url: `https://matic-mumbai.chainstacklabs.com/`,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),

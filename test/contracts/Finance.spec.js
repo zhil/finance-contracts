@@ -666,7 +666,7 @@ describe('Finance', () => {
       }
     );
 
-    await increaseTime(100);
+    await increaseTime(99);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -759,7 +759,7 @@ describe('Finance', () => {
     );
 
     // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
-    await increaseTime(100);
+    await increaseTime(99);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -852,7 +852,7 @@ describe('Finance', () => {
       }
     );
 
-    await increaseTime(100);
+    await increaseTime(99);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -945,7 +945,7 @@ describe('Finance', () => {
       }
     );
 
-    await increaseTime(100);
+    await increaseTime(99);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -1038,7 +1038,7 @@ describe('Finance', () => {
       }
     );
 
-    await increaseTime(150);
+    await increaseTime(149);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -1131,7 +1131,7 @@ describe('Finance', () => {
       }
     );
 
-    await increaseTime(150);
+    await increaseTime(149);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -1258,7 +1258,7 @@ describe('Finance', () => {
       )) - 1;
 
     // TODO Find a more reliable way of asserting vesting schedule, this is flaky ATM!
-    await increaseTime(99);
+    await increaseTime(98);
 
     await expect(
       await userB.financeContract.cancelFunding(
@@ -1356,7 +1356,7 @@ describe('Finance', () => {
       }
     );
 
-    await increaseTime(100);
+    await increaseTime(99);
 
     await expect(
       await userA.fundingContract.releaseAllToBeneficiary()
@@ -1380,5 +1380,81 @@ describe('Finance', () => {
     expect(await userA.tokenContract.balanceOf(userA.signer.address)).to.equal(
       web3.utils.toWei('1000')
     );
+  });
+
+  it('should correctly calculate releasable amount when offer cliff and vesting is fully finished', async () => {
+    const { userA, userB } = await setupTest();
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), 666]
+    );
+
+    const contributionValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 1]
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: web3.utils.toBN(1000).toString(),
+        cliffPayment: web3.utils.toBN(1500).toString(),
+        cliffPeriod: 5,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        vestingPeriod: 5,
+        priceBancorSupply: web3.utils.toBN(1).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('3'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.financeContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.testERC721.address.toLowerCase(),
+        data: targetSelector + targetData.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('3.03'),
+      }
+    );
+
+    await increaseTime(99);
+
+    await expect(
+      await userA.fundingContract.calculateReleasedAmountByContributionId(
+        userA.signer.address,
+        '0'
+      )
+    ).to.equal(web3.utils.toWei('3'));
   });
 });

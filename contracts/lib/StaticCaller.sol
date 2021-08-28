@@ -1,9 +1,5 @@
 pragma solidity 0.8.3;
 
-/**
- * @title StaticCaller
- * @author Wyvern Protocol Developers
- */
 contract StaticCaller {
     function staticCall(address target, bytes memory data) internal view returns (bool result) {
         assembly {

@@ -2,10 +2,6 @@ pragma solidity 0.8.3;
 
 import "./OwnableDelegateProxy.sol";
 
-/**
- * @title ProxyRegistryInterface
- * @author Wyvern Protocol Developers
- */
 interface ProxyRegistryInterface {
     function delegateProxyImplementation() external returns (address);
 

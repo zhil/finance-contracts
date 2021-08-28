@@ -4,10 +4,6 @@ import "../../Registry.sol";
 import "./TokenRecipient.sol";
 import "./OwnedUpgradeabilityStorage.sol";
 
-/**
- * @title AuthenticatedProxy
- * @author Wyvern Protocol Developers
- */
 contract AuthenticatedProxy is TokenRecipient, OwnedUpgradeabilityStorage {
     /* Whether initialized. */
     bool initialized = false;

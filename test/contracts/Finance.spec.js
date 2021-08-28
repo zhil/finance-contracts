@@ -433,6 +433,70 @@ describe('Finance', () => {
     );
   });
 
+  it('should fail if funding contribution fills nothing', async () => {
+    const { userA, userB } = await setupTest();
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'mintExact(address,uint256)'
+    );
+    const targetData = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userB.signer.address.toLowerCase(), 666]
+    );
+
+    const contributionValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptContractAndSelectorAddUint32FillFromExtraData(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const contributionValidatorExtradata =
+      web3Instance.eth.abi.encodeParameters(
+        ['address', 'bytes4', 'uint32'],
+        [userA.testERC721.address.toLowerCase(), targetSelector, 0]
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        priceBancorSupply: web3.utils.toBN(1000).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1000'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata,
+      cancellationValidatorTarget: ZERO_ADDRESS,
+      cancellationValidatorSelector: '0x00000000',
+      cancellationValidatorExtradata: '0x',
+      maximumFill: '1',
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.financeContract
+    );
+
+    await userA.registryContract.registerProxy();
+
+    await expect(
+      userB.financeContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
+          target: userA.testERC721.address.toLowerCase(),
+          data: targetSelector + targetData.substr(2),
+        }),
+        {
+          value: web3.utils.toWei('1.01'),
+        }
+      )
+    ).to.be.revertedWith('OFFERS/FILL_UNCHANGED');
+  });
+
   it('should withdraw nothing if no upfront payment when during cliff period', async () => {
     const { userA, userB } = await setupTest();
     const nftId = Math.round(Math.random() * 1000000000);
@@ -1288,6 +1352,581 @@ describe('Finance', () => {
         web3.utils.toWei('0.5'),
       ]
     );
+  });
+
+  it('should calculate correct price even after canceling fundings', async () => {
+    const { userA, userB, userC } = await setupTest();
+    const hash = uuid();
+    const maximumFill = 10;
+
+    await userA.erc1155Placeholders.mint(
+      userA.signer.address.toLowerCase(),
+      hash,
+      maximumFill,
+      '0x'
+    );
+
+    const placeholderId = await userA.erc1155Placeholders.idByHash(hash);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'safeTransferFrom(address,address,uint256,uint256,bytes)'
+    );
+    const contributionTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userB.signer.address.toLowerCase(),
+        placeholderId.toString(),
+        1,
+        '0x',
+      ]
+    );
+    const contributionTargetDataUserC = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userC.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+    const cancellationTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userB.signer.address.toLowerCase(),
+        userA.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+
+    const validatorExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userA.erc1155Placeholders.address.toLowerCase(), placeholderId]
+    );
+    const contributionValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptTransferERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const cancellationValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptReturnERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 0, // 0%
+        cliffPeriod: 0,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata: validatorExtradata,
+      cancellationValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      cancellationValidatorSelector,
+      cancellationValidatorExtradata: validatorExtradata,
+      maximumFill,
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.financeContract
+    );
+
+    await userA.registryContract.registerProxy();
+    const proxyAddr = await userA.registryContract.proxies(
+      userA.signer.address
+    );
+    await userA.erc1155Placeholders.setApprovalForAll(proxyAddr, true);
+
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserB.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    await userC.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserC.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    // // Approve creator's proxy to take back the NFT from taker
+    const creatorProxy = await userB.registryContract.proxies(
+      userA.signer.address
+    );
+    await userB.erc1155Placeholders.setApprovalForAll(creatorProxy, true);
+
+    const contributionIdUserB = 0;
+
+    await increaseTime(10);
+
+    await userB.financeContract.cancelFunding(
+      ...prepareOfferArgs(
+        example,
+        signature,
+        {
+          target: userA.erc1155Placeholders.address.toLowerCase(),
+          data: targetSelector + cancellationTargetDataUserB.substr(2),
+        },
+        [contributionIdUserB]
+      )
+    );
+
+    await userC.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserC.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+  });
+
+  it('should fail if funding is already cancelled', async () => {
+    const { userA, userB, userC } = await setupTest();
+    const hash = uuid();
+    const maximumFill = 10;
+
+    await userA.erc1155Placeholders.mint(
+      userA.signer.address.toLowerCase(),
+      hash,
+      maximumFill,
+      '0x'
+    );
+
+    const placeholderId = await userA.erc1155Placeholders.idByHash(hash);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'safeTransferFrom(address,address,uint256,uint256,bytes)'
+    );
+    const contributionTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userB.signer.address.toLowerCase(),
+        placeholderId.toString(),
+        1,
+        '0x',
+      ]
+    );
+    const contributionTargetDataUserC = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userC.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+    const cancellationTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userB.signer.address.toLowerCase(),
+        userA.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+
+    const validatorExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userA.erc1155Placeholders.address.toLowerCase(), placeholderId]
+    );
+    const contributionValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptTransferERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const cancellationValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptReturnERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 0, // 0%
+        cliffPeriod: 0,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata: validatorExtradata,
+      cancellationValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      cancellationValidatorSelector,
+      cancellationValidatorExtradata: validatorExtradata,
+      maximumFill,
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.financeContract
+    );
+
+    await userA.registryContract.registerProxy();
+    const proxyAddr = await userA.registryContract.proxies(
+      userA.signer.address
+    );
+    await userA.erc1155Placeholders.setApprovalForAll(proxyAddr, true);
+
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserB.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    await userC.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserC.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    // // Approve creator's proxy to take back the NFT from taker
+    const creatorProxy = await userB.registryContract.proxies(
+      userA.signer.address
+    );
+    await userB.erc1155Placeholders.setApprovalForAll(creatorProxy, true);
+
+    const contributionIdUserB = 0;
+
+    await increaseTime(10);
+
+    await userB.financeContract.cancelFunding(
+      ...prepareOfferArgs(
+        example,
+        signature,
+        {
+          target: userA.erc1155Placeholders.address.toLowerCase(),
+          data: targetSelector + cancellationTargetDataUserB.substr(2),
+        },
+        [contributionIdUserB]
+      )
+    );
+
+    // TODO Can we make it throw FUNDING/ALREADY_CANCELED and somehow bypass the fact that cancel target call fails because token is not owned by investor anymore?
+    await expect(
+      userB.financeContract.cancelFunding(
+        ...prepareOfferArgs(
+          example,
+          signature,
+          {
+            target: userA.erc1155Placeholders.address.toLowerCase(),
+            data: targetSelector + cancellationTargetDataUserB.substr(2),
+          },
+          [contributionIdUserB]
+        )
+      )
+    ).to.be.revertedWith('OFFERS/CANCELLATION_FAILED');
+  });
+
+  it('should fail if all released and nothing to refund', async () => {
+    const { userA, userB } = await setupTest();
+    const hash = uuid();
+    const maximumFill = 10;
+
+    await userA.erc1155Placeholders.mint(
+      userA.signer.address.toLowerCase(),
+      hash,
+      maximumFill,
+      '0x'
+    );
+
+    const placeholderId = await userA.erc1155Placeholders.idByHash(hash);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'safeTransferFrom(address,address,uint256,uint256,bytes)'
+    );
+    const contributionTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userB.signer.address.toLowerCase(),
+        placeholderId.toString(),
+        1,
+        '0x',
+      ]
+    );
+    const cancellationTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userB.signer.address.toLowerCase(),
+        userA.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+
+    const validatorExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userA.erc1155Placeholders.address.toLowerCase(), placeholderId]
+    );
+    const contributionValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptTransferERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const cancellationValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptReturnERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 0, // 0%
+        cliffPeriod: 0,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 100,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata: validatorExtradata,
+      cancellationValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      cancellationValidatorSelector,
+      cancellationValidatorExtradata: validatorExtradata,
+      maximumFill,
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.financeContract
+    );
+
+    await userA.registryContract.registerProxy();
+    const proxyAddr = await userA.registryContract.proxies(
+      userA.signer.address
+    );
+    await userA.erc1155Placeholders.setApprovalForAll(proxyAddr, true);
+
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserB.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    const contributionIdUserB = 0;
+
+    await increaseTime(200);
+
+    await userB.erc1155Placeholders.setApprovalForAll(proxyAddr, true);
+
+    await expect(
+      userB.financeContract.cancelFunding(
+        ...prepareOfferArgs(
+          example,
+          signature,
+          {
+            target: userA.erc1155Placeholders.address.toLowerCase(),
+            data: targetSelector + cancellationTargetDataUserB.substr(2),
+          },
+          [contributionIdUserB]
+        )
+      )
+    ).to.be.revertedWith('FUNDING/NOTHING_TO_REFUND');
+  });
+
+  it('should fail if trying to fill more than maximum', async () => {
+    const { userA, userB, userC, userD } = await setupTest();
+    const hash = uuid();
+    const maximumFill = 3;
+
+    await userA.erc1155Placeholders.mint(
+      userA.signer.address.toLowerCase(),
+      hash,
+      maximumFill,
+      '0x'
+    );
+
+    const placeholderId = await userA.erc1155Placeholders.idByHash(hash);
+
+    const targetSelector = web3Instance.eth.abi.encodeFunctionSignature(
+      'safeTransferFrom(address,address,uint256,uint256,bytes)'
+    );
+    const contributionTargetDataUserB = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userB.signer.address.toLowerCase(),
+        placeholderId.toString(),
+        1,
+        '0x',
+      ]
+    );
+    const contributionTargetDataUserC = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userC.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+    const contributionTargetDataUserD = web3Instance.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'bytes'],
+      [
+        userA.signer.address.toLowerCase(),
+        userD.signer.address.toLowerCase(),
+        placeholderId,
+        1,
+        '0x',
+      ]
+    );
+
+    const validatorExtradata = web3Instance.eth.abi.encodeParameters(
+      ['address', 'uint256'],
+      [userA.erc1155Placeholders.address.toLowerCase(), placeholderId]
+    );
+    const contributionValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptTransferERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+    const cancellationValidatorSelector =
+      web3Instance.eth.abi.encodeFunctionSignature(
+        'acceptReturnERC1155AnyAmount(bytes,address[5],uint8,uint256[5],bytes)'
+      );
+
+    const example = {
+      beneficiary: userA.signer.address.toLowerCase(),
+      fundingOptions: generateFundingOptions({
+        upfrontPayment: 0, // 0%
+        cliffPeriod: 0,
+        cliffPayment: 0, // 0%
+        vestingPeriod: 200,
+        vestingRatio: web3.utils.toBN(1000000).toString(),
+        priceBancorSupply: web3.utils.toBN(1).toString(), // Initial Supply (e.g. Fills)
+        priceBancorReserveBalance: web3.utils
+          .toBN(web3.utils.toWei('1'))
+          .toString(), // Initial Reserve (e.g. ETH)
+        priceBancorReserveRatio: web3.utils.toBN(1000000).toString(),
+      }),
+      registry: userA.registryContract.address.toLowerCase(),
+      creator: userA.signer.address.toLowerCase(),
+      contributionValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      contributionValidatorSelector,
+      contributionValidatorExtradata: validatorExtradata,
+      cancellationValidatorTarget: userA.staticValidators.address.toLowerCase(),
+      cancellationValidatorSelector,
+      cancellationValidatorExtradata: validatorExtradata,
+      maximumFill,
+      listingTime: '0',
+      expirationTime: '1000000000000',
+    };
+
+    const signature = await signOffer(
+      example,
+      userA.signer,
+      userA.financeContract
+    );
+
+    await userA.registryContract.registerProxy();
+    const proxyAddr = await userA.registryContract.proxies(
+      userA.signer.address
+    );
+    await userA.erc1155Placeholders.setApprovalForAll(proxyAddr, true);
+
+    await userB.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserB.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    await userC.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserC.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    await userD.financeContract.fundOffer(
+      ...prepareOfferArgs(example, signature, {
+        target: userA.erc1155Placeholders.address.toLowerCase(),
+        data: targetSelector + contributionTargetDataUserD.substr(2),
+      }),
+      {
+        value: web3.utils.toWei('1.01'),
+      }
+    );
+
+    await expect(
+      userC.financeContract.fundOffer(
+        ...prepareOfferArgs(example, signature, {
+          target: userA.erc1155Placeholders.address.toLowerCase(),
+          data: targetSelector + contributionTargetDataUserC.substr(2),
+        }),
+        {
+          value: web3.utils.toWei('1.01'),
+        }
+      )
+    ).to.be.revertedWith('OFFERS/FUNDING_INVALID');
   });
 
   it('should successfully withdraw when offer cliff and vesting is fully finished', async () => {

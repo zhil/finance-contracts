@@ -1,12 +1,12 @@
 //SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.3;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/utils/Arrays.sol";
 
 import "./lib/ArrayUtils.sol";
 import "./lib/proxy/AuthenticatedProxy.sol";
-
-import "hardhat/console.sol";
 
 contract StaticValidators {
     string public constant name = "Flair Static Validators";
@@ -244,17 +244,17 @@ contract StaticValidators {
         bytes memory data
     ) public pure returns (uint256) {
         // Decode extradata
-        (address token, uint256 tokenId) = abi.decode(extraData, (address, uint256));
+        (address tokenAddress, uint256 tokenId) = abi.decode(extraData, (address, uint256));
 
         require(
-            uints[2] > uints[4], /* maximumFill */ /* currentFill */
+            uints[1] > uints[4], /* maximumFill */ /* currentFill */
             "STATIC_VALIDATOR/ALREADY_FILLED"
         );
-        uint256 remainingFill = uints[2] - uints[4]; /* maximumFill */ /* currentFill */
+        uint256 remainingFill = uints[1] - uints[4]; /* maximumFill */ /* currentFill */
 
         // Call target == ERC-1155 token to give
         require(
-            addresses[3] == token /* offer.target */
+            addresses[3] == tokenAddress /* offer.target */
         );
         // Call type = call
         require(howToCall == AuthenticatedProxy.HowToCall.Call);

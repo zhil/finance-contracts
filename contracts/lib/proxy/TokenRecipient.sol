@@ -2,10 +2,6 @@ pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/**
- * @title TokenRecipient
- * @author Wyvern Protocol Developers
- */
 contract TokenRecipient {
     event ReceivedEther(address indexed sender, uint256 amount);
     event ReceivedTokens(address indexed from, uint256 value, address indexed token, bytes extraData);

@@ -5,8 +5,8 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 import "./lib/BancorFormula.sol";
-import "./lib/ERC712.sol";
 import "./Offers.sol";
+import "./IFunding.sol";
 
 contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
     using AddressUpgradeable for address;
@@ -22,7 +22,7 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
 
     address internal _treasury;
 
-    address internal _funding;
+    IFunding internal _funding;
 
     uint256 internal _protocolFee;
 
@@ -56,7 +56,7 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
         __Offer_init(name, version);
 
         _treasury = treasury;
-        _funding = funding;
+        _funding = IFunding(funding);
         _protocolFee = protocolFee;
 
         for (uint256 ind = 0; ind < registryAddrs.length; ind++) {
@@ -85,7 +85,7 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
     }
 
     function setFunding(address newAddress) public isGovernor() {
-        _funding = newAddress;
+        _funding = IFunding(newAddress);
     }
 
     /* PUBLIC */
@@ -325,20 +325,14 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
             payable(address(_treasury)).sendValue(protocolFeeAmount);
         }
 
-        (bool success, ) =
-            _funding.call{value: fundingCost}(
-                abi.encodeWithSignature(
-                    "registerContribution(address,bytes32,uint256[8],address,uint256,uint256)",
-                    offer.beneficiary,
-                    hash,
-                    offer.fundingOptions,
-                    taker,
-                    filled,
-                    fundingCost
-                )
-            );
-
-        require(success, "FLAIR_FINANCE/INVESTMENT_FAILED");
+        _funding.registerContribution{value: fundingCost}(
+            offer.beneficiary,
+            hash,
+            offer.fundingOptions,
+            taker,
+            filled,
+            fundingCost
+        );
 
         emit OfferFunded(hash, offer.creator, msg.sender, filled, newFill);
     }
@@ -350,25 +344,22 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
         uint256 contributionId
     ) internal {
         address taker = _msgSender();
+
         (bytes32 hash, uint256 previousFill, uint256 newFill) = _executeOfferCancellation(offer, call, signature);
 
         require(previousFill > newFill, "FLAIR_FINANCE/NOT_UNFILLED");
 
+        offerTotalFunded[offer.creator][hash] -= _funding.contributions(contributionId).amount;
+
         uint256 unfilled = previousFill - newFill;
 
-        (bool success, ) =
-            _funding.call(
-                abi.encodeWithSignature(
-                    "refundContribution(address,bytes32,address,uint256,uint256)",
-                    offer.beneficiary,
-                    hash,
-                    taker,
-                    unfilled,
-                    contributionId
-                )
-            );
-
-        require(success, "FLAIR_FINANCE/CANCELLATION_FAILED");
+        _funding.refundContribution(
+            offer.beneficiary,
+            hash,
+            taker,
+            unfilled,
+            contributionId
+        );
 
         emit FundingCancelled(hash, offer.creator, msg.sender, unfilled, newFill);
     }

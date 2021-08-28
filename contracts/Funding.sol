@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.3;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
@@ -8,8 +10,6 @@ import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
 import "./lib/BancorFormula.sol";
 import "./lib/PaymentRecipientUpgradable.sol";
-
-import "hardhat/console.sol";
 
 contract Funding is
     ContextUpgradeable,

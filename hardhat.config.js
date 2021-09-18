@@ -11,10 +11,30 @@ require('dotenv').config();
 
 const { INFURA_PROJECT_ID } = process.env;
 const { DEPLOYER_PRIVATE_KEY } = process.env;
-const { ETHERSCAN_API_KEY } = process.env;
 
 if (!process.env.GAS_PRICE) {
   throw new Error('Must provide GAS_PRICE e.g. export GAS_PRICE=5500000000');
+}
+
+const args = process.argv.slice(2);
+
+let etherScanApiKey;
+let gasPrice;
+
+if (args.includes('mumbai')) {
+  etherScanApiKey = process.env.MUMBAI_ETHERSCAN_API_KEY;
+  gasPrice = parseInt(process.env.MUMBAI_GAS_PRICE, 10);
+} else if (args.includes('rinkeby')) {
+  etherScanApiKey = process.env.RINKEBY_ETHERSCAN_API_KEY;
+  gasPrice = parseInt(process.env.RINKEBY_GAS_PRICE, 10);
+} else if (args.includes('mainnet')) {
+  etherScanApiKey = process.env.MAINNET_ETHERSCAN_API_KEY;
+  gasPrice = parseInt(process.env.MAINNET_GAS_PRICE, 10);
+} else if (args.includes('matic')) {
+  etherScanApiKey = process.env.MATIC_ETHERSCAN_API_KEY;
+  gasPrice = parseInt(process.env.MATIC_GAS_PRICE, 10);
+} else {
+  throw new Error(`Could not get network from args! ${args.join(', ')}`);
 }
 
 // You need to export an object to set up your config
@@ -51,7 +71,8 @@ module.exports = {
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_PROJECT_ID}`,
-      network_id: '*',
+      chainId: 4,
+      gasPrice,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),
@@ -59,36 +80,40 @@ module.exports = {
     bsc_testnet: {
       url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
       chainId: 97,
-      gasPrice: parseInt(process.env.GAS_PRICE),
+      gasPrice,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
-      network_id: '*',
-      gasPrice: parseInt(process.env.GAS_PRICE),
+      chainId: 1,
+      gasPrice,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),
     },
     matic: {
       url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      chainId: 137,
+      gasPrice,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),
     },
     mumbai: {
       url: `https://polygon-mumbai.infura.io/v3/${INFURA_PROJECT_ID}`,
+      chainId: 80001,
       // url: `https://matic-mumbai.chainstacklabs.com/`,
-      gasPrice: 8000000000,
+      gasPrice,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),
     },
     arb_rinkeby: {
       url: 'https://rinkeby.arbitrum.io/rpc',
-      gasPrice: 0,
+      chainId: 42161,
+      gasPrice,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),
@@ -97,7 +122,7 @@ module.exports = {
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: ETHERSCAN_API_KEY,
+    apiKey: etherScanApiKey,
   },
   contractSizer: {
     alphaSort: false,
@@ -110,9 +135,6 @@ module.exports = {
     },
     governor: {
       default: 0,
-    },
-    uniquedev: {
-      default: 1,
     },
   },
   gasReporter: {

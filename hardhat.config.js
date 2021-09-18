@@ -33,6 +33,9 @@ if (args.includes('mumbai')) {
 } else if (args.includes('matic')) {
   etherScanApiKey = process.env.MATIC_ETHERSCAN_API_KEY;
   gasPrice = parseInt(process.env.MATIC_GAS_PRICE, 10);
+} else if (args.includes('hardhat')) {
+  etherScanApiKey = process.env.RINKEBY_ETHERSCAN_API_KEY;
+  gasPrice = parseInt(process.env.RINKEBY_GAS_PRICE, 10);
 } else {
   throw new Error(`Could not get network from args! ${args.join(', ')}`);
 }

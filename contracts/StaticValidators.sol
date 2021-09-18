@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.3;
+pragma abicoder v2;
 
 import "hardhat/console.sol";
 
@@ -242,7 +243,7 @@ contract StaticValidators {
         AuthenticatedProxy.HowToCall howToCall,
         uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
         bytes memory data
-    ) public pure returns (uint256) {
+    ) public view returns (uint256) {
         // Decode extradata
         (address token) = abi.decode(extraData, (address));
 
@@ -385,7 +386,7 @@ contract StaticValidators {
         tokenId = abi.decode(ArrayUtils.slice(data, 68, 32), (uint256));
     }
 
-    function getNftTokenIdsFromCalldata(bytes memory data) internal pure returns (uint256[] memory tokenIds) {
-        tokenIds = abi.decode(ArrayUtils.slice(data, 68, data.length - 68), (uint256[]));
+    function getNftTokenIdsFromCalldata(bytes memory data) internal view returns (uint256[] memory tokenIds) {
+        (,,tokenIds) = abi.decode(ArrayUtils.slice(data, 4, data.length - 4), (address, address, uint256[]));
     }
 }

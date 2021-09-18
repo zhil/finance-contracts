@@ -799,6 +799,11 @@
     safe-buffer "^5.1.1"
     util.promisify "^1.0.0"
 
+"@nomiclabs/hardhat-ethers@npm:hardhat-deploy-ethers", hardhat-deploy-ethers@^0.3.0-beta.10:
+  version "0.3.0-beta.10"
+  resolved "https://registry.yarnpkg.com/hardhat-deploy-ethers/-/hardhat-deploy-ethers-0.3.0-beta.10.tgz#bccfcf635d380bbab3638960f6739fe4d396fc5f"
+  integrity sha512-TeyriUshRZ7XVHOjMsDtTozIrdwLf3Bw+oZRYNhXdG/eut5HeDhjUFPfRlG7TI1lSLvkcB5dt7OxOtPYKDOxTg==
+
 "@nomiclabs/hardhat-etherscan@^2.1.5":
   version "2.1.6"
   resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-etherscan/-/hardhat-etherscan-2.1.6.tgz#8d1502f42adc6f7b8ef16fb917c0b5a8780cb83a"
@@ -4640,7 +4645,7 @@ ethers@^4.0.32, ethers@^4.0.40:
     uuid "2.0.1"
     xmlhttprequest "1.8.0"
 
-ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.2, ethers@^5.4.5:
+ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.2, ethers@^5.4.7:
   version "5.4.7"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.4.7.tgz#0fd491a5da7c9793de2d6058d76b41b1e7efba8f"
   integrity sha512-iZc5p2nqfWK1sj8RabwsPM28cr37Bpq7ehTQ5rWExBr2Y09Sn1lDKZOED26n+TsZMye7Y6mIgQ/1cwpSD8XZew==
@@ -5654,11 +5659,6 @@ hardhat-contract-sizer@^2.0.3:
   dependencies:
     cli-table3 "^0.6.0"
     colors "^1.4.0"
-
-hardhat-deploy-ethers@^0.3.0-beta.10:
-  version "0.3.0-beta.10"
-  resolved "https://registry.yarnpkg.com/hardhat-deploy-ethers/-/hardhat-deploy-ethers-0.3.0-beta.10.tgz#bccfcf635d380bbab3638960f6739fe4d396fc5f"
-  integrity sha512-TeyriUshRZ7XVHOjMsDtTozIrdwLf3Bw+oZRYNhXdG/eut5HeDhjUFPfRlG7TI1lSLvkcB5dt7OxOtPYKDOxTg==
 
 hardhat-deploy@^0.7.11:
   version "0.7.11"

@@ -12,10 +12,6 @@ require('dotenv').config();
 const { INFURA_PROJECT_ID } = process.env;
 const { DEPLOYER_PRIVATE_KEY } = process.env;
 
-if (!process.env.GAS_PRICE) {
-  throw new Error('Must provide GAS_PRICE e.g. export GAS_PRICE=5500000000');
-}
-
 const args = process.argv.slice(2);
 
 let etherScanApiKey;

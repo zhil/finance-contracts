@@ -88,6 +88,10 @@ contract Finance is Offers, BancorFormula, AccessControlUpgradeable {
         _funding = IFunding(newAddress);
     }
 
+    function updateRegistryAddress(address addr, bool isActive) public isGovernor() {
+        registries[addr] = isActive;
+    }
+
     /* PUBLIC */
 
     function getParameters()

@@ -79,8 +79,16 @@ module.exports = {
         : {}),
     },
     mumbai: {
-      // url: `https://polygon-mumbai.infura.io/v3/${INFURA_PROJECT_ID}`,
-      url: `https://matic-mumbai.chainstacklabs.com/`,
+      url: `https://polygon-mumbai.infura.io/v3/${INFURA_PROJECT_ID}`,
+      // url: `https://matic-mumbai.chainstacklabs.com/`,
+      gasPrice: 8000000000,
+      ...(DEPLOYER_PRIVATE_KEY
+        ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
+        : {}),
+    },
+    arb_rinkeby: {
+      url: 'https://rinkeby.arbitrum.io/rpc',
+      gasPrice: 0,
       ...(DEPLOYER_PRIVATE_KEY
         ? { accounts: [`0x${DEPLOYER_PRIVATE_KEY}`] }
         : {}),

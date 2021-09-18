@@ -35,7 +35,10 @@ module.exports = async ({ deployments }) => {
         });
       }
     } catch (err) {
-      if (!err.toString().includes('already verified')) {
+      if (
+        !err.toString().includes('already verified') &&
+        !err.toString().includes('could not be found')
+      ) {
         throw err;
       }
     }

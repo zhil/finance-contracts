@@ -17,7 +17,7 @@ contract StaticValidators {
      * Useful for offers that allow buyers provide how much they want to fill
      * (e.g. buyers can choose how many punks to mint on each investment).
      *
-     * This static check assumes position of chosen amount (must be uin256) is predictable from the call data.
+     * This static check assumes position of chosen amount (must be uint256) is predictable from the call data.
      * (e.g. PunksContract.mint(bytes32 punkType, uint256 amountToMint) -> offset must be "33"
      */
     function acceptContractAndSelectorAddUint256FillFromCallData(
@@ -236,6 +236,51 @@ contract StaticValidators {
         return 0;
     }
 
+    function acceptReturnERC721Bulk(
+        bytes memory extraData,
+        address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
+        AuthenticatedProxy.HowToCall howToCall,
+        uint256[5] memory uints, // msg.value, offer.maximumFill, offer.listingTime, offer.expirationTime, currentFill
+        bytes memory data
+    ) public pure returns (uint256) {
+        // Decode extradata
+        (address token) = abi.decode(extraData, (address));
+
+        require(
+            uints[4] > 0, /* currentFill */
+            "STATIC_VALIDATOR/NOT_FILLED"
+        );
+
+        // Call target == ERC-721 token to give
+        require(
+            addresses[3] == token /* offer.target */
+        );
+
+        // Call type = call
+        require(howToCall == AuthenticatedProxy.HowToCall.Call);
+
+        // Assert calldata
+
+        uint256[] memory tokenIds = getNftTokenIdsFromCalldata(data);
+        require(tokenIds.length > 0, "STATIC_VALIDATOR/INVALID_TOKEN_ID");
+
+        require(
+            ArrayUtils.arrayEq(
+                data,
+                abi.encodeWithSignature(
+                    "transferFromBulk(address,address,uint256[])",
+                    addresses[4], /* taker */
+                    addresses[2], /* creator */
+                    tokenIds
+                )
+            )
+        );
+
+        uint256 newFill = uints[4] /* currentFill */ - tokenIds.length;
+
+        return newFill;
+    }
+
     function acceptTransferERC1155AnyAmount(
         bytes memory extraData,
         address[5] memory addresses, // offer.beneficiary, offer.registry, offer.creator, offer.target, taker
@@ -338,5 +383,9 @@ contract StaticValidators {
 
     function getNftTokenIdFromCalldata(bytes memory data) internal pure returns (uint256 tokenId) {
         tokenId = abi.decode(ArrayUtils.slice(data, 68, 32), (uint256));
+    }
+
+    function getNftTokenIdsFromCalldata(bytes memory data) internal pure returns (uint256[] memory tokenIds) {
+        tokenIds = abi.decode(ArrayUtils.slice(data, 68, data.length - 68), (uint256[]));
     }
 }

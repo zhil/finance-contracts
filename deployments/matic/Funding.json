@@ -1,5 +1,5 @@
 {
-  "address": "0xb2edC1E98b147137D7f6894403E163236bc6FffC",
+  "address": "0x2e43759e52d69Eb4561541f6F7A6C4E82CD2448A",
   "abi": [
     {
       "anonymous": false,
@@ -110,6 +110,92 @@
     {
       "stateMutability": "payable",
       "type": "receive"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "offerHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "unfilled",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "remainderAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "contributionID",
+          "type": "uint256"
+        }
+      ],
+      "name": "ContributionRefunded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "offerHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "filled",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "contributionID",
+          "type": "uint256"
+        }
+      ],
+      "name": "ContributionRegistered",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -248,6 +334,161 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "contributionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "calculateReleasedAmountByContributionId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        }
+      ],
+      "name": "calculateStatsByBeneficiary",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalReleasable",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalAlreadyReleased",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalFilled",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "hashes",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "calculateStatsByHashBatch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalReleasable",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalAlreadyReleased",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalFilled",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "contributions",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "offerHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "filled",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "registeredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "refundedAt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "contributionsByHash",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "",
           "type": "address"
         },
@@ -257,7 +498,7 @@
           "type": "bytes32"
         }
       ],
-      "name": "filledAmountByBeneficiaryAndHash",
+      "name": "filledTotalByBeneficiaryAndHash",
       "outputs": [
         {
           "internalType": "uint256",
@@ -372,35 +613,6 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "investmentsByHash",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "time",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "name",
       "outputs": [
@@ -440,32 +652,70 @@
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "filled",
-          "type": "uint256"
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
         },
         {
           "internalType": "bytes32",
-          "name": "hash",
+          "name": "offerHash",
           "type": "bytes32"
         },
         {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "requiredPayment",
+          "name": "unfilled",
           "type": "uint256"
         },
+        {
+          "internalType": "uint256",
+          "name": "contributionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "refundContribution",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
         {
           "internalType": "address",
           "name": "beneficiary",
           "type": "address"
         },
         {
+          "internalType": "bytes32",
+          "name": "offerHash",
+          "type": "bytes32"
+        },
+        {
           "internalType": "uint256[8]",
           "name": "fundingOptions",
           "type": "uint256[8]"
+        },
+        {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "filled",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
         }
       ],
-      "name": "registerInvestment",
+      "name": "registerContribution",
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
@@ -480,9 +730,27 @@
     {
       "inputs": [
         {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "releaseToBeneficiaryByHash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "",
           "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
         }
       ],
       "name": "releasedTimes",
@@ -578,6 +846,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "offerHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "totalContributionsByHash",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "version",
       "outputs": [
@@ -612,22 +899,22 @@
       "type": "constructor"
     }
   ],
-  "transactionHash": "0xf5e42967d8f6afeb901cb7556e5e56f481d9ba42849adf391aec5e752100f1da",
+  "transactionHash": "0xc880b7e687aa1d32cca836b1fcb2ad62e3ace38631a46bb5d4c3f888b7e0c353",
   "receipt": {
     "to": null,
     "from": "0xB68d649F181bDE8A8FeE367535a606Cc3C09fCCd",
-    "contractAddress": "0xb2edC1E98b147137D7f6894403E163236bc6FffC",
-    "transactionIndex": 35,
-    "gasUsed": "707951",
-    "logsBloom": "0x00000004000000000000000000000000000000000000000000000000000000000000000000000000000000000020000004008002000000000000000000000000000100000000000000000000000000800000000000000400040100000000000000000000020000000000000000000800000000004000000080000000000000000000000000000000000000000000000000000400000000000000000000000000200000000000000000000000000000000000000000000000001000000000004000000000000000000001008000000000000000000000000100100000000020000000800000000000001000000000000400000000000000000000000000100000",
-    "blockHash": "0x0c8df88341cd49d31f23085329f1261ce02d20c0f0ecf75c900aca53e8b00e41",
-    "transactionHash": "0xf5e42967d8f6afeb901cb7556e5e56f481d9ba42849adf391aec5e752100f1da",
+    "contractAddress": "0x2e43759e52d69Eb4561541f6F7A6C4E82CD2448A",
+    "transactionIndex": 28,
+    "gasUsed": "708073",
+    "logsBloom": "0x00000004000000000000000000000000000000000020000000000000000000000000000000000000000000000020000100008000000000000000000000000000000004000000000000000000000000800000000000000400000100000000000000000000020000000000000000000800000000000000000080000000000000000000000080000000800000000000000000000000000000000000000000000000200000000000000000000000000000008000000000000000001000000000004000000000000000000001008000000000000000000000000100100000000020000000800000000000001000000000000400000000000000000000000000100000",
+    "blockHash": "0x5d3c3edebbfef0b7695864aee1aa6763550da474b7f1241a5f544a6ec5034af2",
+    "transactionHash": "0xc880b7e687aa1d32cca836b1fcb2ad62e3ace38631a46bb5d4c3f888b7e0c353",
     "logs": [
       {
-        "transactionIndex": 35,
-        "blockNumber": 17619495,
-        "transactionHash": "0xf5e42967d8f6afeb901cb7556e5e56f481d9ba42849adf391aec5e752100f1da",
-        "address": "0xb2edC1E98b147137D7f6894403E163236bc6FffC",
+        "transactionIndex": 28,
+        "blockNumber": 19275972,
+        "transactionHash": "0xc880b7e687aa1d32cca836b1fcb2ad62e3ace38631a46bb5d4c3f888b7e0c353",
+        "address": "0x2e43759e52d69Eb4561541f6F7A6C4E82CD2448A",
         "topics": [
           "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
           "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -635,14 +922,14 @@
           "0x000000000000000000000000b68d649f181bde8a8fee367535a606cc3c09fccd"
         ],
         "data": "0x",
-        "logIndex": 113,
-        "blockHash": "0x0c8df88341cd49d31f23085329f1261ce02d20c0f0ecf75c900aca53e8b00e41"
+        "logIndex": 195,
+        "blockHash": "0x5d3c3edebbfef0b7695864aee1aa6763550da474b7f1241a5f544a6ec5034af2"
       },
       {
-        "transactionIndex": 35,
-        "blockNumber": 17619495,
-        "transactionHash": "0xf5e42967d8f6afeb901cb7556e5e56f481d9ba42849adf391aec5e752100f1da",
-        "address": "0xb2edC1E98b147137D7f6894403E163236bc6FffC",
+        "transactionIndex": 28,
+        "blockNumber": 19275972,
+        "transactionHash": "0xc880b7e687aa1d32cca836b1fcb2ad62e3ace38631a46bb5d4c3f888b7e0c353",
+        "address": "0x2e43759e52d69Eb4561541f6F7A6C4E82CD2448A",
         "topics": [
           "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
           "0x7935bd0ae54bc31f548c14dba4d37c5c64b3f8ca900cb468fb8abd54d5894f55",
@@ -650,32 +937,32 @@
           "0x000000000000000000000000b68d649f181bde8a8fee367535a606cc3c09fccd"
         ],
         "data": "0x",
-        "logIndex": 114,
-        "blockHash": "0x0c8df88341cd49d31f23085329f1261ce02d20c0f0ecf75c900aca53e8b00e41"
+        "logIndex": 196,
+        "blockHash": "0x5d3c3edebbfef0b7695864aee1aa6763550da474b7f1241a5f544a6ec5034af2"
       },
       {
-        "transactionIndex": 35,
-        "blockNumber": 17619495,
-        "transactionHash": "0xf5e42967d8f6afeb901cb7556e5e56f481d9ba42849adf391aec5e752100f1da",
+        "transactionIndex": 28,
+        "blockNumber": 19275972,
+        "transactionHash": "0xc880b7e687aa1d32cca836b1fcb2ad62e3ace38631a46bb5d4c3f888b7e0c353",
         "address": "0x0000000000000000000000000000000000001010",
         "topics": [
           "0x4dfe1bbbcf077ddc3e01291eea2d5c70c2b422b415d95645b9adcfd678cb1d63",
           "0x0000000000000000000000000000000000000000000000000000000000001010",
           "0x000000000000000000000000b68d649f181bde8a8fee367535a606cc3c09fccd",
-          "0x0000000000000000000000005b106f49f30620a07b4fbdcebb1e08b70499c851"
+          "0x0000000000000000000000007b5000af8ab69fd59eb0d4f5762bff57c9c04385"
         ],
-        "data": "0x00000000000000000000000000000000000000000000000000028a5137aa65fd000000000000000000000000000000000000000000000000375c446abe0a663900000000000000000000000000000000000000000000021c42e92e49b095f3d70000000000000000000000000000000000000000000000003759ba198660003c00000000000000000000000000000000000000000000021c42ebb89ae84059d4",
-        "logIndex": 115,
-        "blockHash": "0x0c8df88341cd49d31f23085329f1261ce02d20c0f0ecf75c900aca53e8b00e41"
+        "data": "0x000000000000000000000000000000000000000000000000000507fa2f47b40000000000000000000000000000000000000000000000000036a885b42d353bc600000000000000000000000000000000000000000000060bf10512d36f4e5f7200000000000000000000000000000000000000000000000036a37db9fded87c600000000000000000000000000000000000000000000060bf10a1acd9e961372",
+        "logIndex": 197,
+        "blockHash": "0x5d3c3edebbfef0b7695864aee1aa6763550da474b7f1241a5f544a6ec5034af2"
       }
     ],
-    "blockNumber": 17619495,
-    "cumulativeGasUsed": "8484471",
+    "blockNumber": 19275972,
+    "cumulativeGasUsed": "9189606",
     "status": 1,
     "byzantium": true
   },
   "args": [
-    "0x35F6B1d81aED96Ae0019bdec354a80E99219bEc5",
+    "0x7Ac4a0cE09D67f1C6Dc25138AdacF8D2195A363F",
     "0xae19F12838b3513246769Ed8636D565F75Dcb1c7",
     "0xc5e4c9f90000000000000000000000001dc99a44b07f1790647087d789173991dfa5ee6500000000000000000000000000000000000000000000000000000000000f4240"
   ],
@@ -690,7 +977,7 @@
       1000000
     ]
   },
-  "implementation": "0x35F6B1d81aED96Ae0019bdec354a80E99219bEc5",
+  "implementation": "0x7Ac4a0cE09D67f1C6Dc25138AdacF8D2195A363F",
   "devdoc": {
     "details": "This contract implements a proxy that is upgradeable by an admin.  To avoid https://medium.com/nomic-labs-blog/malicious-backdoors-in-ethereum-proxies-62629adf3357[proxy selector clashing], which can potentially be used in an attack, this contract uses the https://blog.openzeppelin.com/the-transparent-proxy-pattern/[transparent proxy pattern]. This pattern implies two things that go hand in hand:  1. If any account other than the admin calls the proxy, the call will be forwarded to the implementation, even if that call matches one of the admin functions exposed by the proxy itself. 2. If the admin calls the proxy, it can access the admin functions, but its calls will never be forwarded to the implementation. If the admin tries to call a function on the implementation it will fail with an error that says \"admin cannot fallback to proxy target\".  These properties mean that the admin account can only be used for admin actions like upgrading the proxy or changing the admin, so it's best if it's a dedicated account that is not used for anything else. This will avoid headaches due to sudden errors when trying to call a function from the proxy implementation.  Our recommendation is for the dedicated account to be an instance of the {ProxyAdmin} contract. If set up this way, you should think of the `ProxyAdmin` instance as the real administrative inerface of your proxy.",
     "events": {
